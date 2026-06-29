@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecomeal.client", "Ecomeal.client\Ecomeal.client\Ecomeal.client.csproj", "{57A34697-A087-4D93-9EB9-08157173DE93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecomeal.client.Client", "Ecomeal.client\Ecomeal.client.Client\Ecomeal.client.Client.csproj", "{F5C6317D-83BB-48AD-9B0B-3A02532FD1BF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{57A34697-A087-4D93-9EB9-08157173DE93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57A34697-A087-4D93-9EB9-08157173DE93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57A34697-A087-4D93-9EB9-08157173DE93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57A34697-A087-4D93-9EB9-08157173DE93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5C6317D-83BB-48AD-9B0B-3A02532FD1BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5C6317D-83BB-48AD-9B0B-3A02532FD1BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5C6317D-83BB-48AD-9B0B-3A02532FD1BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5C6317D-83BB-48AD-9B0B-3A02532FD1BF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
