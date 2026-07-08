@@ -1,4 +1,3 @@
-using Ecomeal.client.Client.Pages;
 using Ecomeal.client.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
+
+builder.Services.AddHttpClient<Ecomeal.client.Services.BusinessService>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7179/");
+});
 
 var app = builder.Build();
 

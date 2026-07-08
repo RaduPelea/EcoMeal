@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcoMeal.api.Migrations
 {
     [DbContext(typeof(EcomealDbContext))]
-    [Migration("20260703084147_Miciretusuri")]
-    partial class Miciretusuri
+    [Migration("20260707200920_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -184,9 +184,6 @@ namespace EcoMeal.api.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

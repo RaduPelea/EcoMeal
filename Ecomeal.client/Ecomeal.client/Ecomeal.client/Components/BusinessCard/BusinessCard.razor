@@ -1,0 +1,52 @@
+@namespace Ecomeal.client.Components.BusinessCard
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject BusinessService BusinessService
+
+
+
+<div class="card h-100 shadow-sm">
+    <div class="card-body d-flex flex-column">
+        <h5 class="card-title">@Business.Name</h5>
+        <h6 class="card-subtitle mb-2 text-muted">@Business.BusinessTypeName</h6>
+        <p class="card-text">@Business.Description</p>
+
+        <ul class="list-unstyled small mb-3"> 
+            <li>📍 @Business.Address</li>
+            <li>✉️ @Business.Contact</li>
+            <li>⭐ @Business.Rating</li>
+        </ul>
+
+        <button class="btn btn-danger mt-auto"
+                @onclick="DeleteAsync"
+                disabled="@_isDeleting">
+            @(_isDeleting ? "Se șterge..." : "Delete")
+        </button>
+    </div>
+</div>
+
+@code {
+    // date afacere <= businesslist
+    [Parameter]
+    public required BusinessModel Business { get; set; }
+
+    // signal businesslist =>deleted the business
+    [Parameter]
+    public EventCallback<int> OnDeleted { get; set; }
+
+    //  block button while deleting
+    private bool _isDeleting;
+
+    private async Task DeleteAsync()
+    {
+        _isDeleting = true;
+        var success = await BusinessService.DeleteAsync(Business.Id);
+        _isDeleting = false;
+
+        if (success)
+        {
+            // call la lista ca afacerea a fost stearsa
+            await OnDeleted.InvokeAsync(Business.Id);
+        }
+    }
+}

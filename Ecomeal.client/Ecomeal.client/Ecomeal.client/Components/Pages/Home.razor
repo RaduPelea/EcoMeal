@@ -1,7 +1,10 @@
-﻿@page "/"
+@page "/"
+@using Ecomeal.client.Components.BusinessList
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Afaceri EcoMeal</h1>
 
-Welcome to your new app.
+@* @rendermode InteractiveServer = componenta devine interactivă (rulează pe server),
+   ca butoanele/click-urile (ex: Delete de la temă) să funcționeze *@
+<BusinessList @rendermode="InteractiveServer" />
