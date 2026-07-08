@@ -26,4 +26,23 @@ public class BusinessService
         var response = await _http.DeleteAsync($"api/business/{id}");
         return response.IsSuccessStatusCode;
     }
+    
+    public async Task<BusinessDetailsModel?> GetOneById(int id)
+    {
+        var business = await _http.GetFromJsonAsync<BusinessDetailsModel>($"api/business/{id}");
+
+        return business;
+    }
+
+    public async Task AddPackageToBusiness(int BusinessId,PackageAddModel package)
+    {
+        await _http.PostAsJsonAsync($"api/business/{BusinessId}/addPackage", package);
+    }
+
+    // ia lista de tipuri de pachet (pentru dropdown-ul din formular)
+    public async Task<List<PackageTypeModel>> GetPackageTypesAsync()
+    {
+        var types = await _http.GetFromJsonAsync<List<PackageTypeModel>>("api/packagetype");
+        return types ?? new List<PackageTypeModel>();
+    }
 }

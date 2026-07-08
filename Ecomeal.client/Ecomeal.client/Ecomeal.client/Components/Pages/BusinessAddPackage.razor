@@ -1,0 +1,79 @@
+@page "/business/{BusinessId:int}/addPackage"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject NavigationManager Navigation
+
+<h2>Add Package</h2>
+
+<EditForm Model="PackageAddModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+    <label class="form-label">Name</label>
+    <InputText class="form-control mb-2"
+               @bind-Value="PackageAddModel.Name"
+               placeholder="Add Package Name" />
+    <ValidationMessage For="@(() => PackageAddModel.Name)"/>
+    <label class="form-label">Description</label>
+    <InputTextArea @bind-Value="PackageAddModel.Description"
+                   placeholder="Description"
+                   rows="4"
+                   class="form-control mb-2" />
+
+    <label class="form-label">Price</label>
+    <InputNumber @bind-Value="PackageAddModel.Price"
+                 placeholder="Price"
+                 class="form-control mb-2" />
+
+    <label class="form-label">Start Pick-up</label>
+    <InputDate @bind-Value="PackageAddModel.StartPickup"
+               Type="InputDateType.DateTimeLocal"
+               class="form-control mb-2" />
+
+    <label class="form-label">End Pick-up</label>
+    <InputDate @bind-Value="PackageAddModel.EndPickup"
+               Type="InputDateType.DateTimeLocal"
+               class="form-control mb-2" />
+
+    <label class="form-label">Package Type</label>
+    <InputSelect @bind-Value="PackageAddModel.PackageTypeId"
+                 class="form-control mb-2">
+        <option value="0" disabled>Pick Type...</option>
+        @foreach (var type in packageTypes)
+        {
+            <option value="@type.Id">@type.Name</option>
+        }
+    </InputSelect>
+
+    <button type="submit" class="btn btn-primary mt-3">Add Package</button>
+
+</EditForm>
+
+@code {
+    // BusinessId vine din URL (/business/5/addPackage)
+    [Parameter]
+    public int BusinessId { get; set; }
+
+    // Modelul legat de formular
+    private PackageAddModel PackageAddModel { get; set; } = new();
+
+    [Inject]
+    public required BusinessService BusinessService { get; set; }
+
+    // Tipurile de pachet pentru dropdown (aduse de la API)
+    private List<PackageTypeModel> packageTypes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        packageTypes = await BusinessService.GetPackageTypesAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        // trimite pachetul catre API -> se salveaza in baza de date
+        await BusinessService.AddPackageToBusiness(BusinessId, PackageAddModel);
+
+        // dupa adaugare, ne intoarcem la pagina afacerii
+        Navigation.NavigateTo($"/business/{BusinessId}");
+    }
+}

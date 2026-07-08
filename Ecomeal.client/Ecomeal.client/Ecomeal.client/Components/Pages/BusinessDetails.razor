@@ -1,0 +1,49 @@
+@page "/business/{Id:int}"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services;
+
+@if(_business is null)
+{
+    return;
+}
+
+<div class="container my-4">
+    <h1 class="mb-3">@_business.Name</h1>
+    <p class="text-muted mb-4">@_business.Description</p>
+    <p class="text-muted mb-4"><strong>Contact:</strong> @_business.Contact</p>
+    <p class="text-muted mb-4"><strong>business Type:</strong> @_business.BusinessTypeName</p>
+    <p class="text-muted mb-4"><strong>Address:</strong> @_business.Adress</p>
+
+
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h2 class="mb-0">Packages</h2>
+        <button type="button"
+                class="btn btn-primary"
+                @onclick="NavigateToAddPackage">
+            + Add Package
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [Inject]
+    public required BusinessService BusinessService { get; set; }
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; } 
+
+    private BusinessDetailsModel? _business;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _business = await BusinessService.GetOneById(Id);
+    }
+
+    public void NavigateToAddPackage()
+    {
+        NavigationManager.NavigateTo($"/business/{Id}/addPackage");
+    }
+}

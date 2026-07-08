@@ -3,17 +3,34 @@ html, body {
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: #2e7d32;
 }
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: #4CAF50;
+    border-color: #2E7D32;
+}
+
+.btn-primary:hover {
+    background-color: #43a047;
+    border-color: #1b5e20;
+}
+
+/* butoanele "Detalii" (outline) pe verde */
+.btn-outline-primary {
+    color: #2E7D32;
+    border-color: #4CAF50;
+}
+
+.btn-outline-primary:hover {
+    color: #fff;
+    background-color: #4CAF50;
+    border-color: #4CAF50;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #4CAF50;
 }
 
 .content {

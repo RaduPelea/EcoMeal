@@ -2,6 +2,7 @@
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
 @inject BusinessService BusinessService
+@inject NavigationManager Navigation
 
 
 
@@ -17,11 +18,16 @@
             <li>⭐ @Business.Rating</li>
         </ul>
 
-        <button class="btn btn-danger mt-auto"
-                @onclick="DeleteAsync"
-                disabled="@_isDeleting">
-            @(_isDeleting ? "Se șterge..." : "Delete")
-        </button>
+        <div class="mt-auto d-flex gap-2">
+            <button class="btn btn-outline-primary flex-fill" @onclick="NavigateToDetails">
+                Detalii
+            </button>
+            <button class="btn btn-danger flex-fill"
+                    @onclick="DeleteAsync"
+                    disabled="@_isDeleting">
+                @(_isDeleting ? "Se șterge..." : "Delete")
+            </button>
+        </div>
     </div>
 </div>
 
@@ -49,4 +55,10 @@
             await OnDeleted.InvokeAsync(Business.Id);
         }
     }
+    // Navigheaza la pagina de detalii (/business/{id})
+    private void NavigateToDetails()
+    {
+        Navigation.NavigateTo($"/business/{Business.Id}");
+    }
 }
+
