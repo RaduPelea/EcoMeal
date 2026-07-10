@@ -1,4 +1,6 @@
 using Ecomeal.client.Components;
+using EcoMeal.client.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,12 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
-
+builder.Services.AddTransient<AuthenticationHeaderHandler>();
 builder.Services.AddHttpClient<Ecomeal.client.Services.BusinessService>(client =>
 {
     client.BaseAddress = new Uri("https://localhost:7179/");
-});
-
+}).AddHttpMessageHandler<AuthenticationHeaderHandler>();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7179/") });
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AuthenticationStateProvider,CustomAuthenticationStateProvider>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
