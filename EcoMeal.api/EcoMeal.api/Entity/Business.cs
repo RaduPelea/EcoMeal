@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace EcoMeal.api.Models;
 //@INSERT INTO Businesses (Name, Address, Description, Contact, Rating, BusinessTypeId)
 //VALUES (N'Numele afacerii', N'Orasul', N'Descriere', N'email@contact.ro', 4.5, 1);
@@ -8,6 +10,7 @@ public class Business
     public required string Address { get; set; }
     public string? Description { get; set; }
     public required string Contact { get; set; }
+    [Precision(18, 2)]
     public decimal Rating { get; set; }
 
     

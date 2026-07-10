@@ -1,10 +1,12 @@
 @page "/business/{BusinessId:int}/addPackage"
+@page "/business/{BusinessId:int}/editPackage/{PackageId:int}"
 @rendermode InteractiveServer
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
 @inject NavigationManager Navigation
 
-<h2>Add Package</h2>
+<h2>@(PackageId is null ? "Add Package" : "Edit Package")</h2>
+<a class="btn btn-link px-0 mb-2" href="@($"/business/{BusinessId}")">← Back</a>
 
 <EditForm Model="PackageAddModel" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator/>
@@ -45,35 +47,67 @@
         }
     </InputSelect>
 
-    <button type="submit" class="btn btn-primary mt-3">Add Package</button>
+    <button type="submit" class="btn btn-primary mt-3">
+        @(PackageId is null ? "Add Package" : "Save Changes")
+    </button>
 
 </EditForm>
 
 @code {
-    // BusinessId vine din URL (/business/5/addPackage)
+    // from the URL
     [Parameter]
     public int BusinessId { get; set; }
 
-    // Modelul legat de formular
+    // null = add, has value = edit
+    [Parameter]
+    public int? PackageId { get; set; }
+
+    // form model
     private PackageAddModel PackageAddModel { get; set; } = new();
 
     [Inject]
     public required BusinessService BusinessService { get; set; }
 
-    // Tipurile de pachet pentru dropdown (aduse de la API)
+    // package types for the dropdown
     private List<PackageTypeModel> packageTypes = new();
 
     protected override async Task OnInitializedAsync()
     {
         packageTypes = await BusinessService.GetPackageTypesAsync();
+
+        // edit mode: load the package
+        if (PackageId is not null)
+        {
+            var existing = await BusinessService.GetPackageByIdAsync(PackageId.Value);
+            if (existing is not null)
+            {
+                PackageAddModel = new PackageAddModel
+                {
+                    Name = existing.Name,
+                    Description = existing.Description,
+                    Price = existing.Price,
+                    StartPickup = existing.StartPickup,
+                    EndPickup = existing.EndPickup,
+                    PackageTypeId = existing.PackageTypeId
+                };
+            }
+        }
     }
 
     private async Task HandleSubmit()
     {
-        // trimite pachetul catre API -> se salveaza in baza de date
-        await BusinessService.AddPackageToBusiness(BusinessId, PackageAddModel);
+        if (PackageId is null)
+        {
+            // add
+            await BusinessService.AddPackageToBusiness(BusinessId, PackageAddModel);
+        }
+        else
+        {
+            // edit
+            await BusinessService.UpdatePackageAsync(PackageId.Value, PackageAddModel);
+        }
 
-        // dupa adaugare, ne intoarcem la pagina afacerii
+        // back to the business page
         Navigation.NavigateTo($"/business/{BusinessId}");
     }
 }

@@ -43,6 +43,7 @@ public class BusinessController : ControllerBase
     public async Task<ActionResult<BusinessDetailsDTO>> GetOneById(int id)
     {
         var business = await _context.Businesses
+            .Where(b => b.Id == id)
             .Select(b => new BusinessDetailsDTO
             {
                 Id = b.Id,
@@ -51,9 +52,21 @@ public class BusinessController : ControllerBase
                 Description = b.Description,
                 Contact = b.Contact,
                 Rating = b.Rating,
-                BusinessTypeName = b.BusinessType!.Name
+                BusinessTypeName = b.BusinessType!.Name,
+                // include the packages
+                Packages = b.Packages.Select(p => new PackageDTO
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    StartPickup = p.StartPickup,
+                    EndPickup = p.EndPickup,
+                    PackageTypeId = p.PackageTypeId,
+                    PackageTypeName = p.PackageType!.Name
+                }).ToList()
             })
-            .FirstOrDefaultAsync(b => b.Id == id);   // ia prima afacere cu id-ul cerut (sau null)
+            .FirstOrDefaultAsync();   // business with the given id (or null)
 
         if (business is null)
             return NotFound();
@@ -91,6 +104,66 @@ public class BusinessController : ControllerBase
         
         await _context.SaveChangesAsync();
         return Created();
+    }
+
+    // create a business
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] BusinessAddDTO dto)
+    {
+        _context.Businesses.Add(new Business
+        {
+            Name = dto.Name,
+            Address = dto.Address,
+            Description = dto.Description,
+            Contact = dto.Contact,
+            Rating = dto.Rating,
+            BusinessTypeId = dto.BusinessTypeId
+        });
+
+        await _context.SaveChangesAsync();
+        return Created();
+    }
+
+    // update a business
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] BusinessAddDTO dto)
+    {
+        var business = await _context.Businesses.FindAsync(id);
+        if (business is null)
+            return NotFound();
+
+        business.Name = dto.Name;
+        business.Address = dto.Address;
+        business.Description = dto.Description;
+        business.Contact = dto.Contact;
+        business.Rating = dto.Rating;
+        business.BusinessTypeId = dto.BusinessTypeId;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // business data for the edit form
+    [HttpGet("{id}/edit")]
+    public async Task<ActionResult<BusinessAddDTO>> GetForEdit(int id)
+    {
+        var business = await _context.Businesses
+            .Where(b => b.Id == id)
+            .Select(b => new BusinessAddDTO
+            {
+                Name = b.Name,
+                Address = b.Address,
+                Description = b.Description,
+                Contact = b.Contact,
+                Rating = b.Rating,
+                BusinessTypeId = b.BusinessTypeId
+            })
+            .FirstOrDefaultAsync();
+
+        if (business is null)
+            return NotFound();
+
+        return Ok(business);
     }
 
 }

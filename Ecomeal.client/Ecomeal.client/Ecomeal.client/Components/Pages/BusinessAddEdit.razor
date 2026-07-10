@@ -1,0 +1,79 @@
+@page "/business/add"
+@page "/business/edit/{Id:int}"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject NavigationManager Navigation
+@inject BusinessService BusinessService
+
+<h2>@(Id is null ? "Add Business" : "Edit Business")</h2>
+<a class="btn btn-link px-0 mb-2" href="/">← Back to Home</a>
+
+<EditForm Model="business" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator/>
+    <ValidationSummary/>
+
+    <label class="form-label">Name</label>
+    <InputText class="form-control mb-2" @bind-Value="business.Name" />
+
+    <label class="form-label">Address</label>
+    <InputText class="form-control mb-2" @bind-Value="business.Address" />
+
+    <label class="form-label">Description</label>
+    <InputTextArea class="form-control mb-2" rows="3" @bind-Value="business.Description" />
+
+    <label class="form-label">Contact</label>
+    <InputText class="form-control mb-2" @bind-Value="business.Contact" />
+
+    <label class="form-label">Rating</label>
+    <InputNumber class="form-control mb-2" @bind-Value="business.Rating" />
+
+    <label class="form-label">Business Type</label>
+    <InputSelect class="form-control mb-2" @bind-Value="business.BusinessTypeId">
+        <option value="0" disabled>Pick Type...</option>
+        @foreach (var type in businessTypes)
+        {
+            <option value="@type.Id">@type.Name</option>
+        }
+    </InputSelect>
+
+    <button type="submit" class="btn btn-primary mt-3">
+        @(Id is null ? "Add Business" : "Save Changes")
+    </button>
+</EditForm>
+
+@code {
+    // null = add, has value = edit
+    [Parameter]
+    public int? Id { get; set; }
+
+    // form model
+    private BusinessAddModel business = new();
+
+    // business types for the dropdown
+    private List<BusinessTypeModel> businessTypes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        businessTypes = await BusinessService.GetBusinessTypesAsync();
+
+        // edit mode: load the business
+        if (Id is not null)
+        {
+            var existing = await BusinessService.GetBusinessForEditAsync(Id.Value);
+            if (existing is not null)
+                business = existing;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (Id is null)
+            await BusinessService.AddBusinessAsync(business);
+        else
+            await BusinessService.UpdateBusinessAsync(Id.Value, business);
+
+        // back to the home list
+        Navigation.NavigateTo("/");
+    }
+}

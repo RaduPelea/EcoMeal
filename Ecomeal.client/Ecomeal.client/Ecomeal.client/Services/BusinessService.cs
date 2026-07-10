@@ -45,4 +45,48 @@ public class BusinessService
         var types = await _http.GetFromJsonAsync<List<PackageTypeModel>>("api/packagetype");
         return types ?? new List<PackageTypeModel>();
     }
+
+    // get one package (for the edit form)
+    public async Task<PackageModel?> GetPackageByIdAsync(int id)
+    {
+        return await _http.GetFromJsonAsync<PackageModel>($"api/package/{id}");
+    }
+
+    // update a package
+    public async Task UpdatePackageAsync(int id, PackageAddModel package)
+    {
+        await _http.PutAsJsonAsync($"api/package/{id}", package);
+    }
+
+    // delete a package
+    public async Task<bool> DeletePackageAsync(int id)
+    {
+        var response = await _http.DeleteAsync($"api/package/{id}");
+        return response.IsSuccessStatusCode;
+    }
+
+    // business types for the dropdown
+    public async Task<List<BusinessTypeModel>> GetBusinessTypesAsync()
+    {
+        var types = await _http.GetFromJsonAsync<List<BusinessTypeModel>>("api/businesstype");
+        return types ?? new List<BusinessTypeModel>();
+    }
+
+    // business data for the edit form
+    public async Task<BusinessAddModel?> GetBusinessForEditAsync(int id)
+    {
+        return await _http.GetFromJsonAsync<BusinessAddModel>($"api/business/{id}/edit");
+    }
+
+    // create a business
+    public async Task AddBusinessAsync(BusinessAddModel business)
+    {
+        await _http.PostAsJsonAsync("api/business", business);
+    }
+
+    // update a business
+    public async Task UpdateBusinessAsync(int id, BusinessAddModel business)
+    {
+        await _http.PutAsJsonAsync($"api/business/{id}", business);
+    }
 }

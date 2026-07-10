@@ -9,11 +9,15 @@
 }
 
 <div class="container my-4">
-    <h1 class="mb-3">@_business.Name</h1>
+    <a class="btn btn-link px-0 mb-2" href="/">← Back to Home</a>
+    <div class="d-flex justify-content-between align-items-start">
+        <h1 class="mb-3">@_business.Name</h1>
+        <a class="btn btn-outline-secondary btn-sm" href="@($"/business/edit/{Id}")">Edit Business</a>
+    </div>
     <p class="text-muted mb-4">@_business.Description</p>
     <p class="text-muted mb-4"><strong>Contact:</strong> @_business.Contact</p>
     <p class="text-muted mb-4"><strong>business Type:</strong> @_business.BusinessTypeName</p>
-    <p class="text-muted mb-4"><strong>Address:</strong> @_business.Adress</p>
+    <p class="text-muted mb-4"><strong>Address:</strong> @_business.Address</p>
 
 
     <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
@@ -24,6 +28,41 @@
             + Add Package
         </button>
     </div>
+
+    @* business packages *@
+    @if (_business.Packages.Count == 0)
+    {
+        <p class="text-muted">No packages yet.</p>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var pkg in _business.Packages)
+            {
+                <div class="col-12 col-md-6 col-lg-4" @key="pkg.Id">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@pkg.Name</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">@pkg.PackageTypeName</h6>
+                            <p class="card-text">@pkg.Description</p>
+                            <p class="card-text mb-1"><strong>Price:</strong> @pkg.Price</p>
+                            <p class="card-text"><small class="text-muted">@pkg.StartPickup.ToString("g") - @pkg.EndPickup.ToString("g")</small></p>
+                            <div class="mt-auto d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm flex-fill"
+                                        @onclick="() => NavigateToEditPackage(pkg.Id)">
+                                    Edit
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm flex-fill"
+                                        @onclick="() => DeletePackage(pkg.Id)">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 </div>
 
 @code {
@@ -33,7 +72,7 @@
     [Inject]
     public required BusinessService BusinessService { get; set; }
     [Inject]
-    public required NavigationManager NavigationManager { get; set; } 
+    public required NavigationManager NavigationManager { get; set; }
 
     private BusinessDetailsModel? _business;
 
@@ -45,5 +84,19 @@
     public void NavigateToAddPackage()
     {
         NavigationManager.NavigateTo($"/business/{Id}/addPackage");
+    }
+
+    // go to the add page in edit mode
+    public void NavigateToEditPackage(int packageId)
+    {
+        NavigationManager.NavigateTo($"/business/{Id}/editPackage/{packageId}");
+    }
+
+    // delete a package and remove it from the list
+    private async Task DeletePackage(int packageId)
+    {
+        var ok = await BusinessService.DeletePackageAsync(packageId);
+        if (ok)
+            _business?.Packages.RemoveAll(p => p.Id == packageId);
     }
 }
