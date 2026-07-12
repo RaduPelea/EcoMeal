@@ -10,6 +10,8 @@ public class PackageAddModel
     [Required(ErrorMessage = "Description is required")]
     public string Description { get; set; } = "";
 
+    public string? ImageUrl { get; set; }
+
     // [Required] is useless on value types, use [Range]
     [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
     public double Price { get; set; }

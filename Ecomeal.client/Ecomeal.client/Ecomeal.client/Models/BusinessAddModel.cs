@@ -10,6 +10,11 @@ public class BusinessAddModel
     [Required(ErrorMessage = "Address is required")]
     public string Address { get; set; } = "";
 
+    [Required(ErrorMessage = "City is required")]
+    public string City { get; set; } = "";
+
+    public string? ImageUrl { get; set; }
+
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Contact is required")]

@@ -5,5 +5,6 @@ public class UserMeResponse
     public string? Email { get; set; }
     public string? Name { get; set; }
     public string? Contact { get; set; }
+    public string? City { get; set; }
     public IList<string> Roles { get; set; } = new List<string>();
 }

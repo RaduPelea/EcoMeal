@@ -20,6 +20,13 @@ public class BusinessService
         return businesses ?? new List<BusinessModel>();
     }
 
+    // distinct cities that have restaurants (for the city search)
+    public async Task<List<string>> GetCitiesAsync()
+    {
+        var cities = await _http.GetFromJsonAsync<List<string>>("api/business/cities");
+        return cities ?? new List<string>();
+    }
+
     // delete
     public async Task<bool> DeleteAsync(int id)
     {

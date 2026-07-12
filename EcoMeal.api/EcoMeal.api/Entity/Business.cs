@@ -8,6 +8,8 @@ public class Business
     public int Id { get; set; }
     public required string Name { get; set; }
     public required string Address { get; set; }
+    public string City { get; set; } = "";
+    public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public required string Contact { get; set; }
     [Precision(18, 2)]

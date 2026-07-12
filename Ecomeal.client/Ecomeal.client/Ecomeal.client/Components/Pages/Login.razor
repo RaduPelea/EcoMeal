@@ -44,7 +44,7 @@
             var result = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
 
             if (result.Success)
-                Navigation.NavigateTo("/");
+                Navigation.NavigateTo("/", forceLoad: true);
             else
                 errorMessage = result.ErrorMessage;
         }

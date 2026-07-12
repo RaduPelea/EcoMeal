@@ -1,0 +1,37 @@
+@page "/order"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<PageTitle>Order</PageTitle>
+
+<section class="hero" style="padding: 3rem 2rem;">
+    <h1>What are you craving? 🍽️</h1>
+    <p>Pick a category and discover discounted meals near you.</p>
+</section>
+
+<div class="section category-grid">
+    <div class="category-card" @onclick='() => Go("Fast Food")'>
+        <span class="ico">🍔</span>
+        <h3>Fast Food</h3>
+        <p class="text-muted">Burgers, pizza, quick bites</p>
+    </div>
+    <div class="category-card" @onclick='() => Go("Bakery")'>
+        <span class="ico">🥐</span>
+        <h3>Bakery</h3>
+        <p class="text-muted">Pastries, bread, sweets</p>
+    </div>
+    <div class="category-card" @onclick='() => Go("Fine Dining")'>
+        <span class="ico">🍽️</span>
+        <h3>Fine Dining</h3>
+        <p class="text-muted">Restaurant-quality meals</p>
+    </div>
+</div>
+
+<div class="cta-band">
+    <h2>Fresh food, better prices 🌿</h2>
+    <p>All our partners follow strict freshness standards — and every order helps reduce food waste.</p>
+</div>
+
+@code {
+    private void Go(string category) => Nav.NavigateTo($"/order/{Uri.EscapeDataString(category)}");
+}

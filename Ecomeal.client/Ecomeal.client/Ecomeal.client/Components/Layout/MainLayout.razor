@@ -4,27 +4,48 @@
 @inject NavigationManager Navigation
 
 <div class="page">
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light px-4 border-bottom">
-            <a class="navbar-brand font-weight-bold" href="/">EcoMeal</a>
-            <div class="ms-auto">
-                @if (AuthService.IsAuthenticated)
-                {
-                    <span class="me-3 text-secondary">Logged In</span>
-                    <button class="btn btn-outline-danger btn-sm" @onclick="HandleLogout">Logout</button>
-                }
-                else
-                {
-                    <a class="btn btn-outline-primary btn-sm" href="/login">Login</a>
-                }
-            </div>
-        </nav>
-    </header>
+    <nav class="eco-navbar">
+        <a class="eco-brand" href="/">🌿 EcoMeal</a>
+        <div class="eco-nav-links">
+            <a href="/">Home</a>
+            <a href="/order">Order</a>
+            @if (AuthService.IsAdmin)
+            {
+                <a href="/manage">Manage</a>
+            }
+        </div>
+        <div class="eco-nav-actions">
+            @if (AuthService.IsAuthenticated)
+            {
+                <span class="eco-city">📍 @(string.IsNullOrEmpty(AuthService.City) ? "No city" : AuthService.City)</span>
+                <a class="btn btn-outline-light btn-sm" href="/change-city">Change city</a>
+                <button class="btn btn-outline-light btn-sm" @onclick="HandleLogout">Logout</button>
+            }
+            else
+            {
+                <a class="btn btn-light btn-sm" href="/login">Login</a>
+                <a class="btn btn-accent btn-sm" href="/register">Sign Up</a>
+            }
+        </div>
+    </nav>
+
     <main>
-        <article class="content px-4 py-3">
+        <article class="content">
             @Body
         </article>
     </main>
+
+    <footer class="eco-footer">
+        <div class="inner">
+            <span class="brand">🌿 EcoMeal</span>
+            <span>Own a restaurant? <a href="/partner">Want to become a partner? →</a></span>
+            <span>
+                <a href="/">Home</a>
+                <a href="/order">Order</a>
+                <a href="/partner">Partner</a>
+            </span>
+        </div>
+    </footer>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

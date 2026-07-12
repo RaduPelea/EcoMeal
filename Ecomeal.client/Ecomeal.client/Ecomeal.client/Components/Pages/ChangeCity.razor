@@ -1,0 +1,50 @@
+@page "/change-city"
+@rendermode InteractiveServer
+@using EcoMeal.client.Services
+@using Ecomeal.client.Services
+@using Ecomeal.client.Components
+@inject AuthService AuthService
+@inject BusinessService BusinessService
+
+<div class="form-card">
+    <h3 class="mb-3">Change your city</h3>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-success">@message</div>
+    }
+
+    <p class="text-muted">Current city: <strong>@(string.IsNullOrEmpty(AuthService.City) ? "not set" : AuthService.City)</strong></p>
+
+    <label class="form-label">New city</label>
+    <CitySelector Cities="cities" Value="selectedCity" ValueChanged="c => selectedCity = c" />
+
+    <button class="btn btn-primary w-100 mt-3" @onclick="Save" disabled="@string.IsNullOrEmpty(selectedCity)">Save</button>
+    <a class="btn btn-link w-100 mt-2" href="/">Back</a>
+</div>
+
+@code {
+    private List<string> cities = new();
+    private string selectedCity = "";
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        cities = await BusinessService.GetCitiesAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.LoadTokenAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task Save()
+    {
+        var ok = await AuthService.UpdateCityAsync(selectedCity);
+        message = ok ? $"City changed to {selectedCity}." : "Could not change city.";
+    }
+}

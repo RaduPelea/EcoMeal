@@ -22,6 +22,11 @@
                    rows="4"
                    class="form-control mb-2" />
 
+    <label class="form-label">Image URL</label>
+    <InputText @bind-Value="PackageAddModel.ImageUrl"
+               placeholder="https://... (link to a photo)"
+               class="form-control mb-2" />
+
     <label class="form-label">Price</label>
     <InputNumber @bind-Value="PackageAddModel.Price"
                  placeholder="Price"
@@ -85,6 +90,7 @@
                 {
                     Name = existing.Name,
                     Description = existing.Description,
+                    ImageUrl = existing.ImageUrl,
                     Price = existing.Price,
                     StartPickup = existing.StartPickup,
                     EndPickup = existing.EndPickup,

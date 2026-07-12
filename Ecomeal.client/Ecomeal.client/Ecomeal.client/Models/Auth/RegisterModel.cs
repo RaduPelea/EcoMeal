@@ -21,4 +21,7 @@ public class RegisterModel
 
     [Required(ErrorMessage = "Contact info is required")]
     public string Contact { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Please choose your city")]
+    public string City { get; set; } = string.Empty;
 }

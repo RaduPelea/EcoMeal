@@ -5,6 +5,7 @@ public class Package
     public int Id { get; set; }
     public string Name { get; set; }
     public required string Description { get; set; }
+    public string? ImageUrl { get; set; }
     public int Quantity { get; set; }          
     public double Price { get; set; }         
     public DateTime StartPickup { get; set; }  

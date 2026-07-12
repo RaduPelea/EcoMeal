@@ -26,7 +26,8 @@ public class AuthController : ControllerBase
             UserName = request.Email,
             Email = request.Email,
             Name = request.Name,
-            Contact = request.Contact
+            Contact = request.Contact,
+            City = request.City
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -54,7 +55,21 @@ public class AuthController : ControllerBase
             Email = user.Email,
             Name = user.Name,
             Contact = user.Contact,
+            City = user.City,
             Roles = roles
         });
+    }
+
+    [HttpPut("city")]
+    [Authorize]
+    public async Task<IActionResult> UpdateCity([FromBody] UpdateCityRequest request)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return NotFound();
+
+        user.City = request.City;
+        await _userManager.UpdateAsync(user);
+        return NoContent();
     }
 }

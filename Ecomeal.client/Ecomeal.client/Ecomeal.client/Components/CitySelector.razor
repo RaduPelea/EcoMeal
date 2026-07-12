@@ -1,0 +1,51 @@
+@namespace Ecomeal.client.Components
+
+<div class="city-selector">
+    <input class="form-control" placeholder="Search your city..." value="@_search" @oninput="OnInput" />
+
+    @if (!string.IsNullOrWhiteSpace(_search) && _search != Value)
+    {
+        var matches = Cities.Where(c => c.Contains(_search, StringComparison.OrdinalIgnoreCase)).ToList();
+        @if (matches.Any())
+        {
+            <ul class="city-list">
+                @foreach (var c in matches)
+                {
+                    <li @onclick="() => Select(c)">@c</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <div class="city-empty">🚧 We're not open here yet.</div>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <div class="city-chosen">Selected city: <strong>@Value</strong></div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<string> Cities { get; set; } = new();
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private string _search = "";
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Value) && string.IsNullOrEmpty(_search))
+            _search = Value;
+    }
+
+    private void OnInput(ChangeEventArgs e) => _search = e.Value?.ToString() ?? "";
+
+    private async Task Select(string city)
+    {
+        Value = city;
+        _search = city;
+        await ValueChanged.InvokeAsync(city);
+    }
+}

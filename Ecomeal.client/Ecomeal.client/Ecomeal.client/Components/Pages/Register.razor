@@ -2,64 +2,72 @@
 @rendermode InteractiveServer
 @using EcoMeal.client.Models.Auth
 @using EcoMeal.client.Services
+@using Ecomeal.client.Services
+@using Ecomeal.client.Components
 @inject AuthService AuthService
+@inject BusinessService BusinessService
 @inject NavigationManager Navigation
 
-<h3>Register</h3>
+<div class="form-card">
+    <h3 class="mb-3">Create your account</h3>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
 
-<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
-    <DataAnnotationsValidator />
+    <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+        <DataAnnotationsValidator />
 
-    <div class="mb-3">
         <label class="form-label">Email</label>
-        <InputText class="form-control" @bind-Value="registerModel.Email" />
+        <InputText class="form-control mb-1" @bind-Value="registerModel.Email" />
         <ValidationMessage For="() => registerModel.Email" />
-    </div>
 
-    <div class="mb-3">
         <label class="form-label">Password</label>
-        <InputText type="password" class="form-control" @bind-Value="registerModel.Password" />
+        <InputText type="password" class="form-control mb-1" @bind-Value="registerModel.Password" />
         <ValidationMessage For="() => registerModel.Password" />
-    </div>
 
-    <div class="mb-3">
         <label class="form-label">Confirm Password</label>
-        <InputText type="password" class="form-control" @bind-Value="registerModel.ConfirmPassword" />
+        <InputText type="password" class="form-control mb-1" @bind-Value="registerModel.ConfirmPassword" />
         <ValidationMessage For="() => registerModel.ConfirmPassword" />
-    </div>
 
-    <div class="mb-3">
         <label class="form-label">Name</label>
-        <InputText class="form-control" @bind-Value="registerModel.Name" />
+        <InputText class="form-control mb-1" @bind-Value="registerModel.Name" />
         <ValidationMessage For="() => registerModel.Name" />
-    </div>
 
-    <div class="mb-3">
         <label class="form-label">Contact Info</label>
-        <InputText class="form-control" @bind-Value="registerModel.Contact" />
+        <InputText class="form-control mb-1" @bind-Value="registerModel.Contact" />
         <ValidationMessage For="() => registerModel.Contact" />
-    </div>
 
-    <button type="submit" class="btn btn-primary">Register</button>
-</EditForm>
+        <label class="form-label">City</label>
+        <CitySelector Cities="cities" Value="registerModel.City" ValueChanged="OnCityChanged" />
+        <ValidationMessage For="() => registerModel.City" />
 
-<p class="mt-3">Already have an account? <a href="/login">Login</a></p>
+        <button type="submit" class="btn btn-primary w-100 mt-3">Register</button>
+    </EditForm>
+
+    <p class="mt-3 text-center">Already have an account? <a href="/login">Login</a></p>
+</div>
 
 @code {
     private RegisterModel registerModel { get; set; } = new();
-
+    private List<string> cities = new();
     private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        cities = await BusinessService.GetCitiesAsync();
+    }
+
+    private void OnCityChanged(string city) => registerModel.City = city;
 
     private async Task HandleRegister()
     {
         try
         {
-            var result = await AuthService.RegisterAsync(registerModel.Email, registerModel.Password, registerModel.Name, registerModel.Contact);
+            var result = await AuthService.RegisterAsync(
+                registerModel.Email, registerModel.Password,
+                registerModel.Name, registerModel.Contact, registerModel.City);
 
             if (result.Success)
                 Navigation.NavigateTo("/login");

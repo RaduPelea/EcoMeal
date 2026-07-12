@@ -1,10 +1,66 @@
 @page "/"
-@using Ecomeal.client.Components.BusinessList
+@rendermode InteractiveServer
+@using EcoMeal.client.Services
+@inject AuthService AuthService
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<PageTitle>EcoMeal</PageTitle>
 
-<h1>Available Businesses</h1>
+<section class="hero">
+    <h1>Great food, less waste 🌍</h1>
+    <p>EcoMeal connects you with local restaurants offering delicious meals at a discount before they go to waste. Save money, help the planet.</p>
+    <div class="hero-actions">
+        <button class="btn btn-accent" @onclick="OrderNow">Order Now</button>
+        <a class="btn btn-outline-light" href="/order">Browse Categories</a>
+    </div>
+</section>
 
-<a class="btn btn-primary mb-3" href="/business/add">+ Add Business</a>
+<div class="section features">
+    <div class="feature"><div class="ico">🥗</div><h3>Fresh Deals</h3><p>Quality meals from local spots at reduced prices.</p></div>
+    <div class="feature"><div class="ico">💸</div><h3>Save Money</h3><p>Enjoy your favorites for a fraction of the cost.</p></div>
+    <div class="feature"><div class="ico">♻️</div><h3>Fight Waste</h3><p>Every order helps reduce food waste in your city.</p></div>
+</div>
 
-<BusinessList @rendermode="InteractiveServer" />
+<div class="section">
+    <div class="section-title"><h2>How it works</h2><p>Three simple steps</p></div>
+    <div class="steps">
+        <div class="step"><div class="num">1</div><h3>Pick a category</h3><p>Choose Fast Food, Bakery or Fine Dining.</p></div>
+        <div class="step"><div class="num">2</div><h3>Find a deal</h3><p>Browse nearby places and their discounted packages.</p></div>
+        <div class="step"><div class="num">3</div><h3>Order &amp; save</h3><p>Grab great food for less and help cut waste.</p></div>
+    </div>
+</div>
+
+<div class="cta-band">
+    <h2>Ready to save on your next meal?</h2>
+    <p>Join EcoMeal and start ordering discounted food today.</p>
+    <button class="btn btn-accent" @onclick="OrderNow">Order Now</button>
+</div>
+
+@if (showLoginPrompt)
+{
+    <div class="eco-modal-backdrop" @onclick="ClosePrompt">
+        <div class="eco-modal" @onclick:stopPropagation="true">
+            <h3>Please log in first</h3>
+            <p>You need an account to place an order.</p>
+            <div class="actions">
+                <a class="btn btn-primary" href="/login">Login</a>
+                <a class="btn btn-accent" href="/register">Sign Up</a>
+            </div>
+            <p class="mt-3" style="font-size:0.9rem;">Don't have an account? <a href="/register">Make one now</a></p>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showLoginPrompt;
+
+    private void OrderNow()
+    {
+        if (AuthService.IsAuthenticated)
+            Nav.NavigateTo("/order");
+        else
+            showLoginPrompt = true;
+    }
+
+    private void ClosePrompt() => showLoginPrompt = false;
+}

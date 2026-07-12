@@ -29,6 +29,8 @@ public class BusinessController : ControllerBase
                 Id = b.Id,
                 Name = b.Name,
                 Address = b.Address,
+                City = b.City,
+                ImageUrl = b.ImageUrl,
                 Description = b.Description,
                 Contact = b.Contact,
                 Rating = b.Rating,
@@ -38,8 +40,22 @@ public class BusinessController : ControllerBase
 
         return Ok(businesses);   // 200 OK + lista json
     }
-    
-    [HttpGet("{id}")]
+
+    // distinct cities that have at least one business (for the city search)
+    [HttpGet("cities")]
+    public async Task<ActionResult<IEnumerable<string>>> GetCities()
+    {
+        var cities = await _context.Businesses
+            .Select(b => b.City)
+            .Where(c => c != null && c != "")
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync();
+
+        return Ok(cities);
+    }
+
+    [HttpGet("{id:int}")]
     public async Task<ActionResult<BusinessDetailsDTO>> GetOneById(int id)
     {
         var business = await _context.Businesses
@@ -49,6 +65,8 @@ public class BusinessController : ControllerBase
                 Id = b.Id,
                 Name = b.Name,
                 Address = b.Address,
+                City = b.City,
+                ImageUrl = b.ImageUrl,
                 Description = b.Description,
                 Contact = b.Contact,
                 Rating = b.Rating,
@@ -59,6 +77,7 @@ public class BusinessController : ControllerBase
                     Id = p.Id,
                     Name = p.Name,
                     Description = p.Description,
+                    ImageUrl = p.ImageUrl,
                     Price = p.Price,
                     StartPickup = p.StartPickup,
                     EndPickup = p.EndPickup,
@@ -95,6 +114,7 @@ public class BusinessController : ControllerBase
         {
             Name = package.Name,
             Description = package.Description,
+            ImageUrl = package.ImageUrl,
             Price = package.Price,
             StartPickup = package.StartPickup,
             EndPickup = package.EndPickup,
@@ -114,6 +134,8 @@ public class BusinessController : ControllerBase
         {
             Name = dto.Name,
             Address = dto.Address,
+            City = dto.City,
+            ImageUrl = dto.ImageUrl,
             Description = dto.Description,
             Contact = dto.Contact,
             Rating = dto.Rating,
@@ -134,6 +156,8 @@ public class BusinessController : ControllerBase
 
         business.Name = dto.Name;
         business.Address = dto.Address;
+        business.City = dto.City;
+        business.ImageUrl = dto.ImageUrl;
         business.Description = dto.Description;
         business.Contact = dto.Contact;
         business.Rating = dto.Rating;
@@ -153,6 +177,8 @@ public class BusinessController : ControllerBase
             {
                 Name = b.Name,
                 Address = b.Address,
+                City = b.City,
+                ImageUrl = b.ImageUrl,
                 Description = b.Description,
                 Contact = b.Contact,
                 Rating = b.Rating,
