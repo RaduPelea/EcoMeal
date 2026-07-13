@@ -69,7 +69,7 @@
                             }
                             else
                             {
-                                <button class="btn btn-accent btn-sm mt-auto">Order</button>
+                                <button class="btn btn-accent btn-sm mt-auto" @onclick="() => AskOrder(pkg)">Order</button>
                             }
                         </div>
                     </div>
@@ -79,12 +79,28 @@
     }
 </div>
 
+@if (_orderPkg is not null)
+{
+    <div class="eco-modal-backdrop" @onclick="() => _orderPkg = null">
+        <div class="eco-modal" @onclick:stopPropagation="true">
+            <h3>Place this order?</h3>
+            <p>Are you sure you want to order <strong>@_orderPkg.Name</strong> for @_orderPkg.Price? It will be reserved for you and removed from the list.</p>
+            <div class="actions">
+                <button class="btn btn-outline-secondary" @onclick="() => _orderPkg = null">Cancel</button>
+                <button class="btn btn-accent" @onclick="ConfirmOrder">Yes, order it</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter]
     public int Id { get; set; }
 
     [Inject]
     public required BusinessService BusinessService { get; set; }
+    [Inject]
+    public required OrderService OrderService { get; set; }
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
@@ -119,5 +135,21 @@
         var ok = await BusinessService.DeletePackageAsync(packageId);
         if (ok)
             _business?.Packages.RemoveAll(p => p.Id == packageId);
+    }
+
+    private PackageModel? _orderPkg;
+
+    private void AskOrder(PackageModel pkg) => _orderPkg = pkg;
+
+    private async Task ConfirmOrder()
+    {
+        if (_orderPkg is null) return;
+
+        var id = _orderPkg.Id;
+        _orderPkg = null;
+
+        var ok = await OrderService.PlaceOrderAsync(id);
+        if (ok)
+            _business?.Packages.RemoveAll(p => p.Id == id);
     }
 }

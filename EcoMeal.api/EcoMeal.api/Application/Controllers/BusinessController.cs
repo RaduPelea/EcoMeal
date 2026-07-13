@@ -72,7 +72,7 @@ public class BusinessController : ControllerBase
                 Rating = b.Rating,
                 BusinessTypeName = b.BusinessType!.Name,
                 // include the packages
-                Packages = b.Packages.Select(p => new PackageDTO
+                Packages = b.Packages.Where(p => !p.Orders.Any()).Select(p => new PackageDTO
                 {
                     Id = p.Id,
                     Name = p.Name,

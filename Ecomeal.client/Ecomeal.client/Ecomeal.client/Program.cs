@@ -13,6 +13,7 @@ builder.Services.AddHttpClient<Ecomeal.client.Services.BusinessService>(client =
 {
     client.BaseAddress = new Uri("https://localhost:7179/");
 }).AddHttpMessageHandler<AuthenticationHeaderHandler>();
+builder.Services.AddScoped<Ecomeal.client.Services.OrderService>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7179/") });
 builder.Services.AddScoped<AuthService>();
