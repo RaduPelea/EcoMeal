@@ -1,0 +1,71 @@
+@page "/order-confirmed/{Id:int}"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject OrderService OrderService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["confirm.title"]</PageTitle>
+
+<div class="container my-4">
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border" role="status"></div></div>
+    }
+    else if (_order is null)
+    {
+        <div class="empty-state">
+            <Icon Name="help" Class="ico" />
+            <p class="mb-3">@Loc["confirm.notFound"]</p>
+            <a class="btn btn-outline-primary" href="/orders">@Loc["confirm.goToOrders"]</a>
+        </div>
+    }
+    else
+    {
+        <div class="confirm-hero">
+            <Icon Name="check_circle" Filled="true" Class="ico icon-accent" />
+            <h1 class="mb-2">@Loc["confirm.placed"]</h1>
+            <p class="text-muted">@Loc["confirm.reserved"]</p>
+        </div>
+
+        <div class="card mx-auto" style="max-width: 480px;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">@_order.PackageName</h5>
+                    <span class="chip status-@_order.Status.ToLower()">@Loc[$"status.{_order.Status.ToLower()}"]</span>
+                </div>
+                <p class="mb-2">@Loc["confirm.from"] <a href="@($"/business/{_order.BusinessId}")">@_order.BusinessName</a></p>
+                <p class="mb-2"><span class="pkg-price">@_order.Price.ToString("0.00") lei</span></p>
+                <p class="mb-0"><small class="text-muted">@Loc["confirm.orderNo"]@_order.Id · @_order.Date.ToString("g")</small></p>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-center mt-4">
+            <a class="btn btn-primary" href="/orders">@Loc["nav.myOrders"]</a>
+            <a class="btn btn-outline-primary" href="/order">@Loc["confirm.keepBrowsing"]</a>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private bool _loaded;
+    private OrderModel? _order;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _order = await OrderService.GetByIdAsync(Id);
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+}

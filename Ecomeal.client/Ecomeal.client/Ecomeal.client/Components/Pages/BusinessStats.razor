@@ -1,0 +1,105 @@
+@page "/my-business/stats"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject StatsService StatsService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["nav.salesStats"]</PageTitle>
+
+<div class="container">
+    @if (_stats is null)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else
+    {
+        <h1 class="mb-4">@Loc["bizStats.title"] — @_stats.BusinessName</h1>
+
+        <div class="stat-tiles">
+            <div class="stat-tile"><div class="val">@_stats.Revenue.ToString("0.00") lei</div><div class="lbl">@Loc["bizStats.revenue"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.TotalOrders</div><div class="lbl">@Loc["bizStats.totalOrders"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.PickedUpOrders</div><div class="lbl">@Loc["bizStats.pickedUp"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.CancelledOrders</div><div class="lbl">@Loc["bizStats.cancelled"]</div></div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">@Loc["bizStats.revenueByMonth"]</h5>
+                @if (_stats.RevenueByMonth.Count == 0)
+                {
+                    <p class="text-muted mb-0">@Loc["bizStats.noPickedUp"]</p>
+                }
+                else
+                {
+                    @foreach (var m in _stats.RevenueByMonth)
+                    {
+                        <div class="bar-row">
+                            <span class="bar-label">@(CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(m.Month)) @m.Year</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: @BarWidth(m.Revenue, _maxMonthRevenue)%"></div>
+                            </div>
+                            <span class="bar-value">@m.Revenue.ToString("0.00") lei · @m.Orders ord.</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">@Loc["bizStats.topPackages"]</h5>
+                @if (_stats.TopPackages.Count == 0)
+                {
+                    <p class="text-muted mb-0">@Loc["bizStats.noOrders"]</p>
+                }
+                else
+                {
+                    @foreach (var p in _stats.TopPackages)
+                    {
+                        <div class="bar-row">
+                            <span class="bar-label" title="@p.Name">@(p.Name.Length > 12 ? p.Name[..12] + "…" : p.Name)</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="width: @BarWidth(p.Orders, _maxPackageOrders)%"></div>
+                            </div>
+                            <span class="bar-value">@p.Orders @Loc["bizStats.ordersWord"]</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private BusinessStatsModel? _stats;
+    private decimal _maxMonthRevenue;
+    private decimal _maxPackageOrders;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _stats = await StatsService.GetBusinessStatsAsync();
+            if (_stats is not null)
+            {
+                _maxMonthRevenue = _stats.RevenueByMonth.Count > 0 ? _stats.RevenueByMonth.Max(m => m.Revenue) : 0;
+                _maxPackageOrders = _stats.TopPackages.Count > 0 ? _stats.TopPackages.Max(p => p.Orders) : 0;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private static string BarWidth(decimal value, decimal max)
+    {
+        if (max <= 0)
+            return "0";
+        return Math.Round(value / max * 100, 1).ToString(CultureInfo.InvariantCulture);
+    }
+}

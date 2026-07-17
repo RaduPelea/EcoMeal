@@ -1,0 +1,139 @@
+@page "/admin/stats"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject StatsService StatsService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["adminStats.title"]</PageTitle>
+
+<div class="container my-4">
+    <h1 class="mb-4">@Loc["adminStats.title"]</h1>
+
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else if (_stats is null)
+    {
+        <p class="text-muted">@Loc["adminStats.adminsOnly"]</p>
+    }
+    else
+    {
+        <div class="stat-tiles">
+            <div class="stat-tile"><div class="val">@_stats.TotalOrders</div><div class="lbl">@Loc["adminStats.ordersTotal"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.PickedUpOrders</div><div class="lbl">@Loc["bizStats.pickedUp"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.CancelledOrders</div><div class="lbl">@Loc["bizStats.cancelled"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.FoodSavedValue.ToString("0.00") lei</div><div class="lbl">@Loc["adminStats.foodSaved"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.AverageOrderValue.ToString("0.00") lei</div><div class="lbl">@Loc["adminStats.avgOrder"]</div></div>
+        </div>
+        <div class="stat-tiles">
+            <div class="stat-tile"><div class="val">@_stats.TotalUsers</div><div class="lbl">@Loc["nav.users"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.TotalPartners</div><div class="lbl">@Loc["adminStats.partners"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.TotalBusinesses</div><div class="lbl">@Loc["adminStats.locations"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.AvailablePackages</div><div class="lbl">@Loc["adminStats.packagesAvailable"]</div></div>
+            <div class="stat-tile"><div class="val">@_stats.TotalReviews (@_stats.AverageRating ★)</div><div class="lbl">@Loc["adminStats.reviewsAvg"]</div></div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-lg-6">
+                <h3 class="mb-3">@Loc["adminStats.last7Days"]</h3>
+                @if (_stats.OrdersPerDay.Count == 0)
+                {
+                    <p class="text-muted">@Loc["adminStats.noOrders7"]</p>
+                }
+                else
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr><th>@Loc["adminStats.day"]</th><th>@Loc["adminStats.orders"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var day in _stats.OrdersPerDay)
+                            {
+                                <tr>
+                                    <td>@day.Date.ToString("ddd, d MMM")</td>
+                                    <td>@day.Count</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <div class="col-12 col-lg-6">
+                <h3 class="mb-3">@Loc["adminStats.topBusinesses"]</h3>
+                @if (_stats.TopBusinesses.Count == 0)
+                {
+                    <p class="text-muted">@Loc["bizStats.noOrders"]</p>
+                }
+                else
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr><th>#</th><th>@Loc["adminStats.business"]</th><th>@Loc["details.location"]</th><th>@Loc["adminStats.orders"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < _stats.TopBusinesses.Count; i++)
+                            {
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>
+                                        @_stats.TopBusinesses[i].Name
+                                        <span class="chip status-new ms-1"><Icon Name="storefront" Class="icon-sm" /> @_stats.TopBusinesses[i].BusinessTypeName</span>
+                                    </td>
+                                    <td>@_stats.TopBusinesses[i].City</td>
+                                    <td>@_stats.TopBusinesses[i].Orders</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <div class="col-12 col-lg-6">
+                <h3 class="mb-3">@Loc["adminStats.cities"]</h3>
+                @if (_stats.TopCities.Count == 0)
+                {
+                    <p class="text-muted">@Loc["adminStats.noBusinesses"]</p>
+                }
+                else
+                {
+                    <table class="table table-striped">
+                        <thead>
+                            <tr><th>@Loc["common.city"]</th><th>@Loc["adminStats.businesses"]</th><th>@Loc["adminStats.orders"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var city in _stats.TopCities)
+                            {
+                                <tr>
+                                    <td>@city.City</td>
+                                    <td>@city.Businesses</td>
+                                    <td>@city.Orders</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private bool _loaded;
+    private StatsModel? _stats;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _stats = await StatsService.GetAsync();
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+}

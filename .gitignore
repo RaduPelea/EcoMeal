@@ -44,3 +44,6 @@ npm-debug.log*
 # OS files
 Thumbs.db
 .DS_Store
+
+# User uploads (created at runtime)
+**/wwwroot/uploads/

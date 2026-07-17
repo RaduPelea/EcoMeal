@@ -1,24 +1,26 @@
-@page "/"
+﻿@page "/"
 @rendermode InteractiveServer
-@using EcoMeal.client.Services
+@using Ecomeal.client.Services
 @inject AuthService AuthService
 @inject NavigationManager Nav
+@inject LocalizationService Loc
+@implements IDisposable
 
 <PageTitle>EcoMeal</PageTitle>
 
 <section class="hero">
-    <h1>Great food, less waste 🌍</h1>
-    <p>EcoMeal connects you with local restaurants offering delicious meals at a discount before they go to waste. Save money, help the planet.</p>
+    <h1><Icon Name="public" /> @Loc["home.heroTitle"]</h1>
+    <p>@Loc["home.heroSubtitle"]</p>
     <div class="hero-actions">
-        <button class="btn btn-accent" @onclick="OrderNow">Order Now</button>
-        <a class="btn btn-outline-light" href="/order">Browse Categories</a>
+        <button class="btn btn-accent" @onclick="OrderNow">@Loc["home.orderNow"]</button>
+        <a class="btn btn-outline-light" href="/order">@Loc["home.browseCategories"]</a>
     </div>
 </section>
 
 <div class="section features">
-    <div class="feature"><div class="ico">🥗</div><h3>Fresh Deals</h3><p>Quality meals from local spots at reduced prices.</p></div>
-    <div class="feature"><div class="ico">💸</div><h3>Save Money</h3><p>Enjoy your favorites for a fraction of the cost.</p></div>
-    <div class="feature"><div class="ico">♻️</div><h3>Fight Waste</h3><p>Every order helps reduce food waste in your city.</p></div>
+    <div class="feature"><div class="ico"><Icon Name="nutrition" /></div><h3>Fresh Deals</h3><p>Quality meals from local spots at reduced prices.</p></div>
+    <div class="feature"><div class="ico"><Icon Name="savings" Class="icon-gold" /></div><h3>Save Money</h3><p>Enjoy your favorites for a fraction of the cost.</p></div>
+    <div class="feature"><div class="ico"><Icon Name="recycling" Class="icon-accent" /></div><h3>Fight Waste</h3><p>Every order helps reduce food waste in your city.</p></div>
 </div>
 
 <div class="section">
@@ -31,9 +33,9 @@
 </div>
 
 <div class="cta-band">
-    <h2>Ready to save on your next meal?</h2>
-    <p>Join EcoMeal and start ordering discounted food today.</p>
-    <button class="btn btn-accent" @onclick="OrderNow">Order Now</button>
+    <h2>@Loc["home.ctaTitle"]</h2>
+    <p>@Loc["home.ctaText"]</p>
+    <button class="btn btn-accent" @onclick="OrderNow">@Loc["home.orderNow"]</button>
 </div>
 
 @if (showLoginPrompt)
@@ -52,6 +54,21 @@
 }
 
 @code {
+    protected override void OnInitialized()
+    {
+        Loc.OnChanged += HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Loc.OnChanged -= HandleLanguageChanged;
+    }
+
     private bool showLoginPrompt;
 
     private void OrderNow()

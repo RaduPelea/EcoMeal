@@ -1,4 +1,4 @@
-namespace EcoMeal.API.Application.Models.Auth;
+﻿namespace EcoMeal.api.Application.Models.Auth;
 
 public class UserMeResponse
 {
@@ -6,5 +6,10 @@ public class UserMeResponse
     public string? Name { get; set; }
     public string? Contact { get; set; }
     public string? City { get; set; }
+    public string? Country { get; set; }
+    public string? BusinessName { get; set; }
     public IList<string> Roles { get; set; } = new List<string>();
+    public string? PreferredPackageTypes { get; set; }
+    public decimal? CustomerRating { get; set; }
+    public int CustomerRatingCount { get; set; }
 }

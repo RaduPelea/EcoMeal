@@ -1,0 +1,245 @@
+@page "/profile"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Models.Auth
+@using Ecomeal.client.Services
+@inject AuthService AuthService
+@inject ReviewService ReviewService
+@inject ToastService ToastService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["profile.title"]</PageTitle>
+
+<div class="container my-4">
+    <h1 class="mb-4">@Loc["profile.title"]</h1>
+
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border" role="status"></div></div>
+    }
+    else if (_me is null)
+    {
+        <div class="empty-state">
+            <Icon Name="lock" Class="ico" />
+            <p class="mb-3">@Loc["profile.needLogin"]</p>
+            <a class="btn btn-primary" href="/login">@Loc["nav.login"]</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-12 col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">@Loc["profile.account"]</h5>
+                        <p class="mb-2"><strong>@Loc["common.email"]:</strong> <span class="text-bright">@_me.Email</span></p>
+                        <p class="mb-2">
+                            <strong>@Loc["common.city"]:</strong> <span class="text-bright">@(string.IsNullOrEmpty(_me.City) ? Loc["city.notSet"] : _me.City)</span>
+                            <a class="ms-2" href="/change-city">@Loc["profile.change"]</a>
+                        </p>
+                        <p class="mb-2">
+                            @foreach (var role in _me.Roles ?? new List<string>())
+                            {
+                                <span class="chip me-1">@role</span>
+                            }
+                        </p>
+                        <p class="mb-0">
+                            <strong>@Loc["profile.myRating"]:</strong>
+                            @if (_me.CustomerRating is not null)
+                            {
+                                <span class="chip status-pickedup ms-1">★ @_me.CustomerRating.Value.ToString("0.0")</span>
+                                <small class="text-muted ms-1">(@string.Format(Loc["profile.ratingsFrom"], _me.CustomerRatingCount))</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted ms-1">@Loc["profile.noRatings"]</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">@Loc["profile.personal"]</h5>
+                        <label class="form-label">@Loc["common.name"]</label>
+                        <input class="form-control mb-2" @bind="_name" />
+                        <label class="form-label">@Loc["profile.contactPhone"]</label>
+                        <input class="form-control mb-3" @bind="_contact" />
+                        <button class="btn btn-primary" @onclick="SaveProfile">@Loc["profile.saveChanges"]</button>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">@Loc["profile.preferences"]</h5>
+                        <p class="text-muted mb-2">@Loc["profile.preferencesText"]</p>
+                        @foreach (var category in _allCategories)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="pref-@category"
+                                       checked="@_preferredCategories.Contains(category)"
+                                       @onchange="e => TogglePreference(category, (bool)e.Value!)" />
+                                <label class="form-check-label" for="pref-@category">@category</label>
+                            </div>
+                        }
+                        <button class="btn btn-primary mt-3" @onclick="SavePreferences">@Loc["profile.savePreferences"]</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">@Loc["profile.changePassword"]</h5>
+                        <label class="form-label">@Loc["profile.currentPassword"]</label>
+                        <input type="password" class="form-control mb-2" @bind="_currentPassword" />
+                        <label class="form-label">@Loc["profile.newPassword"]</label>
+                        <input type="password" class="form-control mb-2" @bind="_newPassword" />
+                        <label class="form-label">@Loc["profile.confirmNewPassword"]</label>
+                        <input type="password" class="form-control mb-3" @bind="_confirmPassword" />
+                        @if (_passwordError is not null)
+                        {
+                            <div class="alert alert-danger">@_passwordError</div>
+                        }
+                        <button class="btn btn-primary" @onclick="ChangePassword">@Loc["profile.changePassword"]</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <h5 class="mb-3">@Loc["profile.myReviews"] @(_reviews.Count > 5 ? string.Format(Loc["profile.latestOf"], _reviews.Count) : "")</h5>
+                @if (_reviews.Count == 0)
+                {
+                    <div class="empty-state">
+                        <Icon Name="chat_bubble" Class="ico" />
+                        <p>@Loc["profile.noReviews"]</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var review in _reviews.Take(5))
+                    {
+                        <div class="card mb-3" @key="review.Id">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <a href="@($"/business/{review.BusinessId}")" class="text-bright"><strong>@review.BusinessName</strong></a>
+                                    <StarRow Count="@review.Stars" />
+                                </div>
+                                @if (!string.IsNullOrEmpty(review.Comment))
+                                {
+                                    <p class="card-text mb-2">@review.Comment</p>
+                                }
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">@review.Date.ToString("d")</small>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteReview(review.Id)">@Loc["common.delete"]</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private bool _loaded;
+    private UserMeResponse? _me;
+    private List<MyReviewModel> _reviews = new();
+
+    private string? _name;
+    private string? _contact;
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private string? _passwordError;
+
+    private static readonly string[] _allCategories = ["Fast Food", "Bakery", "Fine Dining"];
+    private HashSet<string> _preferredCategories = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _me = await AuthService.GetMeAsync();
+            if (_me is not null)
+            {
+                _name = _me.Name;
+                _contact = _me.Contact;
+                _preferredCategories = (_me.PreferredPackageTypes ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToHashSet();
+                _reviews = await ReviewService.GetMineAsync();
+            }
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        var (success, error) = await AuthService.UpdateProfileAsync(_name, _contact);
+        if (success)
+            ToastService.ShowSuccess(Loc["profile.updated"]);
+        else
+            ToastService.ShowError(error ?? Loc["profile.updateFailed"]);
+    }
+
+    private void TogglePreference(string category, bool selected)
+    {
+        if (selected)
+            _preferredCategories.Add(category);
+        else
+            _preferredCategories.Remove(category);
+    }
+
+    private async Task SavePreferences()
+    {
+        var value = _preferredCategories.Count == 0 ? null : string.Join(",", _preferredCategories);
+        var (success, error) = await AuthService.UpdatePreferencesAsync(value);
+        if (success)
+            ToastService.ShowSuccess(Loc["profile.prefsSaved"]);
+        else
+            ToastService.ShowError(error ?? Loc["profile.prefsFailed"]);
+    }
+
+    private async Task ChangePassword()
+    {
+        _passwordError = null;
+
+        if (_newPassword != _confirmPassword)
+        {
+            _passwordError = Loc["profile.passwordMismatch"];
+            return;
+        }
+
+        var result = await AuthService.ChangePasswordAsync(_currentPassword, _newPassword);
+        if (!result.Success)
+        {
+            _passwordError = result.ErrorMessage;
+            return;
+        }
+
+        _currentPassword = "";
+        _newPassword = "";
+        _confirmPassword = "";
+        ToastService.ShowSuccess(Loc["profile.passwordChanged"]);
+    }
+
+    private async Task DeleteReview(int id)
+    {
+        var (success, error) = await ReviewService.DeleteAsync(id);
+        if (success)
+        {
+            _reviews.RemoveAll(r => r.Id == id);
+            ToastService.ShowSuccess(Loc["profile.reviewDeleted"]);
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["profile.reviewDeleteFailed"]);
+        }
+    }
+}

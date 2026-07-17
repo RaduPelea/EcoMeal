@@ -1,0 +1,140 @@
+@page "/basket"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject CartService CartService
+@inject OrderService OrderService
+@inject ToastService ToastService
+@inject NavigationManager Navigation
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["basket.title"]</PageTitle>
+
+<div class="container my-4">
+    <h1 class="mb-4"><Icon Name="shopping_basket" Class="icon-accent" /> @Loc["basket.title"]</h1>
+
+    @if (CartService.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="shopping_basket" Class="ico" />
+            <p class="mb-3">@Loc["basket.empty"]</p>
+            <a class="btn btn-accent" href="/order">@Loc["basket.browsePlaces"]</a>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-3">
+            @Loc["basket.orderingFrom"] <a href="@($"/business/{CartService.BusinessId}")"><strong>@CartService.BusinessName</strong></a>
+        </p>
+
+        <div class="card mx-auto" style="max-width: 620px;">
+            <div class="card-body">
+                @foreach (var item in CartService.Items)
+                {
+                    <div class="basket-row" @key="item.PackageId">
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <img src="@item.ImageUrl" class="basket-img" alt="@item.Name" />
+                        }
+                        else
+                        {
+                            <div class="basket-img basket-img-placeholder"><Icon Name="lunch_dining" /></div>
+                        }
+                        <span class="basket-name">@item.Name</span>
+                        <span class="pkg-price">@item.Price.ToString("0.00") lei</span>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => CartService.Remove(item.PackageId)"><Icon Name="close" Class="icon-sm" /></button>
+                    </div>
+                }
+
+                <hr />
+
+                @if (_loyalty?.HasActiveDiscount == true)
+                {
+                    <div class="alert mb-3" style="background: var(--primary-soft); color: var(--primary); border: none; border-radius: 10px;">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="loyalty-check" checked="@_useLoyalty" @onchange="e => _useLoyalty = (bool)e.Value!" />
+                            <label class="form-check-label fw-bold" for="loyalty-check">
+                                🎉 @Loc["basket.applyLoyalty"]
+                            </label>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <strong>@Loc["basket.total"]</strong>
+                    <span>
+                        @if (_useLoyalty)
+                        {
+                            <span class="price-old">@CartService.Total.ToString("0.00") lei</span>
+                            <span class="pkg-price">@((CartService.Total * 0.8m).ToString("0.00")) lei</span>
+                            <span class="discount-badge">-20%</span>
+                        }
+                        else
+                        {
+                            <span class="pkg-price">@CartService.Total.ToString("0.00") lei</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-accent flex-fill" @onclick="Checkout" disabled="@_busy">
+                        @(_busy ? Loc["basket.placing"] : $"{Loc["basket.placeOrder"]} ({CartService.Count})")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="CartService.Clear">@Loc["basket.clear"]</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _busy;
+    private bool _useLoyalty;
+    private LoyaltyStatusModel? _loyalty;
+
+    protected override void OnInitialized()
+    {
+        CartService.OnChanged += HandleCartChanged;
+        Loc.OnChanged += HandleCartChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _loyalty = await OrderService.GetLoyaltyStatusAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void HandleCartChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        CartService.OnChanged -= HandleCartChanged;
+        Loc.OnChanged -= HandleCartChanged;
+    }
+
+    private async Task Checkout()
+    {
+        _busy = true;
+        var (success, error) = await OrderService.PlaceBatchAsync(CartService.Items.Select(i => i.PackageId).ToList(), _useLoyalty);
+        _busy = false;
+
+        if (success)
+        {
+            var count = CartService.Count;
+            CartService.Clear();
+            ToastService.ShowSuccess(string.Format(Loc["basket.orderPlaced"], count));
+            Navigation.NavigateTo("/orders");
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["basket.orderFailed"]);
+        }
+    }
+}

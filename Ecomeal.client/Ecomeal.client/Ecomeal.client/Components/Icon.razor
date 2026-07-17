@@ -1,0 +1,14 @@
+@namespace Ecomeal.client.Components
+
+<span class="material-symbols-outlined @(Filled ? "icon-filled" : "") @Class">@Name</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = "";
+
+    [Parameter]
+    public bool Filled { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+}

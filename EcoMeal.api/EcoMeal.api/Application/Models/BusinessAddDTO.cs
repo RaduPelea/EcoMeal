@@ -9,6 +9,6 @@ public class BusinessAddDTO
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public string Contact { get; set; } = "";
-    public decimal Rating { get; set; }
     public int BusinessTypeId { get; set; }
+    public string? OwnerEmail { get; set; }
 }

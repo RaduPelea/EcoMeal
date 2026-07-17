@@ -1,8 +1,8 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
-namespace EcoMeal.client.Services;
+namespace Ecomeal.client.Services;
 
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
@@ -44,9 +44,9 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             var user = new ClaimsPrincipal(identity);
             return new AuthenticationState(user);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to retrieve authentication state from local storage. This is expected during pre-rendering.");
+            _logger.LogWarning(ex, "Failed to retrieve authentication state from local storage. This is expected during pre-rendering or after a server key change.");
             return new AuthenticationState(_anonymous);
         }
     }

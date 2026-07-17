@@ -2,75 +2,198 @@
 @rendermode InteractiveServer
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
-@using EcoMeal.client.Services
 @inject BusinessService BusinessService
+@inject FavoriteService FavoriteService
 @inject AuthService AuthService
+@inject ToastService ToastService
+@inject DistanceService DistanceService
+@inject IJSRuntime JS
+@inject LocalizationService Loc
+@implements IDisposable
 
 <PageTitle>@Category</PageTitle>
 
-<a class="btn btn-link px-0 mb-2" href="/order">← Back to categories</a>
+<a class="btn btn-link px-0 mb-2" href="/order">← @Loc["browse.backToCategories"]</a>
 <h1 class="mb-2">@Category</h1>
 <p class="text-muted mb-4">
-    @(string.IsNullOrEmpty(AuthService.City) ? "Showing all locations" : $"Showing places in {AuthService.City}")
+    @(string.IsNullOrEmpty(AuthService.City) ? Loc["browse.allLocations"] : string.Format(Loc["browse.placesIn"], AuthService.City))
 </p>
 
-@if (businesses is null)
+@if (_loading)
 {
-    <p>Loading...</p>
+    <div class="loading-state"><div class="spinner-border" role="status"></div></div>
 }
-else if (!Filtered.Any())
+else if (_businesses.Count == 0)
 {
-    <p class="text-muted">No places in this category @(string.IsNullOrEmpty(AuthService.City) ? "" : $"in {AuthService.City} ")yet.</p>
+    <div class="empty-state">
+        <Icon Name="search_off" Class="ico" />
+        <p class="mb-3">@(string.IsNullOrEmpty(AuthService.City) ? Loc["browse.noPlaces"] : string.Format(Loc["browse.noPlacesIn"], AuthService.City))</p>
+        <a class="btn btn-outline-primary" href="/order">@Loc["browse.tryAnother"]</a>
+    </div>
 }
 else
 {
     <div class="row g-3">
-        @foreach (var b in Filtered)
+        @foreach (var b in _businesses)
         {
             <div class="col-12 col-md-6 col-lg-4" @key="b.Id">
                 <div class="card h-100">
-                    @if (!string.IsNullOrEmpty(b.ImageUrl))
-                    {
-                        <img src="@b.ImageUrl" class="card-img-eco" alt="@b.Name" />
-                    }
+                    <div class="card-img-wrap">
+                        @if (!string.IsNullOrEmpty(b.ImageUrl))
+                        {
+                            <img src="@b.ImageUrl" class="card-img-eco" alt="@b.Name" />
+                        }
+                        else
+                        {
+                            <div class="card-img-placeholder"><Icon Name="restaurant" /></div>
+                        }
+                        @if (AuthService.IsAuthenticated)
+                        {
+                            <button class="fav-btn @(_favoriteIds.Contains(b.Id) ? "active" : "")"
+                                    @onclick="() => ToggleFavorite(b.Id)">
+                                <Icon Name="favorite" Filled="@_favoriteIds.Contains(b.Id)" />
+                            </button>
+                        }
+                    </div>
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">@b.Name</h5>
                         <h6 class="card-subtitle">@b.BusinessTypeName</h6>
                         <p class="card-text">@b.Description</p>
-                        <ul class="list-unstyled small mb-3">
-                            <li>📍 @b.Address, @b.City</li>
-                            <li>⭐ @b.Rating</li>
-                        </ul>
-                        <a class="btn btn-primary mt-auto" href="@($"/business/{b.Id}")">View &amp; Order</a>
+                        <p class="mb-1"><Stars Value="@b.Rating" /></p>
+                        <p class="small text-muted mb-1"><Icon Name="location_on" Class="icon-sm" /> @b.Address, @b.City</p>
+                        @if (b.DistanceKm is not null)
+                        {
+                            <p class="small text-muted mb-3">
+                                <Icon Name="directions_car" Class="icon-sm" />
+                                @b.DistanceKm.Value.ToString("0.0") km@(b.DurationMinutes is not null ? $" · ~{b.DurationMinutes} min" : "")
+                            </p>
+                        }
+                        <a class="btn btn-primary mt-auto" href="@($"/business/{b.Id}")">@Loc["browse.viewOrder"]</a>
                     </div>
                 </div>
             </div>
         }
     </div>
+
+    @if (_businesses.Count < _totalCount)
+    {
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-primary" @onclick="LoadMore" disabled="@_loadingMore">
+                @(_loadingMore ? Loc["common.loading"] : $"{Loc["browse.loadMore"]} ({_businesses.Count} / {_totalCount})")
+            </button>
+        </div>
+    }
 }
 
 @code {
     [Parameter]
     public string Category { get; set; } = "";
 
-    private List<BusinessModel>? businesses;
+    private const int PageSize = 9;
 
-    private IEnumerable<BusinessModel> Filtered =>
-        (businesses ?? Enumerable.Empty<BusinessModel>())
-        .Where(b => b.BusinessTypeName == Category)
-        .Where(b => string.IsNullOrEmpty(AuthService.City) || b.City == AuthService.City);
+    private readonly List<BusinessModel> _businesses = new();
+    private HashSet<int> _favoriteIds = new();
+    private int _totalCount;
+    private int _page = 1;
+    private bool _loading = true;
+    private bool _loadingMore;
+    private bool _initialized;
+    private string _loadedCategory = "";
+    private double[]? _userPos;
 
-    protected override async Task OnInitializedAsync()
-    {
-        businesses = await BusinessService.GetAllAsync();
-    }
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await AuthService.LoadTokenAsync();
+            if (AuthService.IsAuthenticated)
+                _favoriteIds = await FavoriteService.GetMyFavoriteIdsAsync();
+
+            await LoadFirstPageAsync();
+            _initialized = true;
             StateHasChanged();
+
+            _userPos = await JS.InvokeAsync<double[]?>("ecoGetLocation");
+            await ApplyDistancesAsync(_businesses);
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && Category != _loadedCategory)
+        {
+            _loading = true;
+            await LoadFirstPageAsync();
+        }
+    }
+
+    private async Task LoadFirstPageAsync()
+    {
+        _page = 1;
+        _businesses.Clear();
+        var result = await BusinessService.BrowseAsync(Category, AuthService.City, _page, PageSize);
+        _businesses.AddRange(result.Items);
+        _totalCount = result.TotalCount;
+        _loadedCategory = Category;
+        _loading = false;
+
+        if (_initialized)
+            await ApplyDistancesAsync(_businesses);
+    }
+
+    private async Task ApplyDistancesAsync(List<BusinessModel> items)
+    {
+        if (_userPos is null || items.Count == 0)
+            return;
+
+        var coords = items
+            .Select(b => b.Latitude is not null && b.Longitude is not null
+                ? ((double, double)?)(b.Latitude.Value, b.Longitude.Value)
+                : null)
+            .ToList();
+
+        var results = await DistanceService.GetDrivingAsync(_userPos[0], _userPos[1], coords);
+        for (var i = 0; i < items.Count; i++)
+        {
+            items[i].DistanceKm = results[i]?.Km;
+            items[i].DurationMinutes = results[i]?.Minutes;
+        }
+    }
+
+    private async Task LoadMore()
+    {
+        _loadingMore = true;
+        _page++;
+        var result = await BusinessService.BrowseAsync(Category, AuthService.City, _page, PageSize);
+        _businesses.AddRange(result.Items);
+        _totalCount = result.TotalCount;
+        await ApplyDistancesAsync(result.Items);
+        _loadingMore = false;
+    }
+
+    private async Task ToggleFavorite(int businessId)
+    {
+        var (state, error) = await FavoriteService.ToggleAsync(businessId);
+        if (state is null)
+        {
+            ToastService.ShowError(error ?? Loc["fav.updateFailed"]);
+            return;
+        }
+
+        if (state.Value)
+        {
+            _favoriteIds.Add(businessId);
+            ToastService.ShowSuccess(Loc["fav.added"]);
+        }
+        else
+        {
+            _favoriteIds.Remove(businessId);
+            ToastService.ShowSuccess(Loc["fav.removed"]);
         }
     }
 }

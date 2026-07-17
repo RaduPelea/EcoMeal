@@ -1,24 +1,24 @@
-using Microsoft.EntityFrameworkCore;
+namespace EcoMeal.api.Entities;
 
-namespace EcoMeal.api.Models;
-//@INSERT INTO Businesses (Name, Address, Description, Contact, Rating, BusinessTypeId)
-//VALUES (N'Numele afacerii', N'Orasul', N'Descriere', N'email@contact.ro', 4.5, 1);
 public class Business
-{   
+{
     public int Id { get; set; }
     public required string Name { get; set; }
     public required string Address { get; set; }
     public string City { get; set; } = "";
+    public string Country { get; set; } = "Romania";
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public required string Contact { get; set; }
-    [Precision(18, 2)]
-    public decimal Rating { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 
-    
     public int BusinessTypeId { get; set; }
     public BusinessType? BusinessType { get; set; }
 
-    
+    public int? OwnerId { get; set; }
+    public User? Owner { get; set; }
+
     public ICollection<Package> Packages { get; set; } = new List<Package>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

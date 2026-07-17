@@ -1,0 +1,91 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models.Auth
+@using Ecomeal.client.Services
+@inject AuthService AuthService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["nav.users"]</PageTitle>
+
+<div class="container">
+    <h1 class="mb-4">@Loc["nav.users"]</h1>
+
+    @if (_users is null)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else if (_users.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="group" Class="ico" />
+            <p>@Loc["adminUsers.empty"]</p>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted mb-3">@string.Format(Loc["adminUsers.count"], _users.Count)</p>
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>@Loc["adminUsers.account"]</th>
+                        <th>@Loc["common.name"]</th>
+                        <th>@Loc["common.email"]</th>
+                        <th>@Loc["details.location"]</th>
+                        <th>@Loc["adminUsers.emailVerified"]</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var u in _users)
+                    {
+                        <tr @key="u.Id">
+                            <td>
+                                @if (u.IsBusiness)
+                                {
+                                    <span class="chip status-pickedup"><Icon Name="storefront" Class="icon-sm" /> @Loc["adminUsers.business"]@(u.LocationCount > 1 ? $" · {u.LocationCount} {Loc["adminUsers.locationsWord"]}" : "")</span>
+                                }
+                                else
+                                {
+                                    <span class="chip"><Icon Name="person" Class="icon-sm" /> @Loc["adminUsers.customer"]</span>
+                                }
+                            </td>
+                            <td>@(string.IsNullOrEmpty(u.Name) ? "—" : u.Name)@(u.IsBusiness && !string.IsNullOrEmpty(u.BusinessName) && u.BusinessName != u.Name ? $" ({u.BusinessName})" : "")</td>
+                            <td>@u.Email</td>
+                            <td>@(string.IsNullOrEmpty(u.City) ? "—" : $"{u.City}, {u.Country}")</td>
+                            <td>
+                                @if (u.EmailConfirmed)
+                                {
+                                    <span class="chip status-new">@Loc["adminUsers.verified"]</span>
+                                }
+                                else
+                                {
+                                    <span class="chip">@Loc["adminUsers.notVerified"]</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private List<AdminUserModel>? _users;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _users = await AuthService.GetUsersAsync();
+            StateHasChanged();
+        }
+    }
+}

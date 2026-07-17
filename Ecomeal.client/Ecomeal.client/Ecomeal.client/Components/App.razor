@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
     <ResourcePreloader/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0&display=block" rel="stylesheet"/>
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]"/>
     <link rel="stylesheet" href="@Assets["app.css"]"/>
     <link rel="stylesheet" href="@Assets["Ecomeal.client.styles.css"]"/>
@@ -15,6 +18,28 @@
 </head>
 
 <body>
+<script>
+    (function () {
+        var theme = localStorage.getItem('ecoTheme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+    })();
+    window.ecoSetTheme = function (theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('ecoTheme', theme);
+    };
+    window.ecoGetTheme = function () {
+        return document.documentElement.getAttribute('data-theme') || 'dark';
+    };
+    window.ecoGetLocation = function () {
+        return new Promise(function (resolve) {
+            if (!navigator.geolocation) { resolve(null); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (pos) { resolve([pos.coords.latitude, pos.coords.longitude]); },
+                function () { resolve(null); },
+                { timeout: 5000 });
+        });
+    };
+</script>
 <Routes/>
 <ReconnectModal/>
 <script src="@Assets["_framework/blazor.web.js"]"></script>

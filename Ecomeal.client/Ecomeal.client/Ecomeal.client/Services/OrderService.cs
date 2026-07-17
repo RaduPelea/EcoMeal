@@ -1,5 +1,4 @@
 using Ecomeal.client.Models;
-using EcoMeal.client.Services;
 
 namespace Ecomeal.client.Services;
 
@@ -14,7 +13,7 @@ public class OrderService
         _auth = auth;
     }
 
-    public async Task<bool> PlaceOrderAsync(int packageId)
+    public async Task<(OrderModel? Order, string? Error)> PlaceOrderAsync(int packageId)
     {
         var req = new HttpRequestMessage(HttpMethod.Post, "api/order")
         {
@@ -23,7 +22,64 @@ public class OrderService
         await AddAuthAsync(req);
 
         var response = await _http.SendAsync(req);
-        return response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+            return (null, await ApiError.ReadAsync(response, "We couldn't place your order. Please try again."));
+
+        return (await response.Content.ReadFromJsonAsync<OrderModel>(), null);
+    }
+
+    public async Task<(bool Success, string? Error)> PlaceBatchAsync(List<int> packageIds, bool useLoyaltyDiscount = false)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Post, "api/order/batch")
+        {
+            Content = JsonContent.Create(new { PackageIds = packageIds, UseLoyaltyDiscount = useLoyaltyDiscount })
+        };
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (response.IsSuccessStatusCode)
+            return (true, null);
+
+        return (false, await ApiError.ReadAsync(response, "We couldn't place your order. Please try again."));
+    }
+
+    public async Task<OrderModel?> GetByIdAsync(int id)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, $"api/order/{id}");
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<OrderModel>();
+    }
+
+    public async Task<(bool Success, string? Error)> UpdateStatusAsync(int id, string status)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Put, $"api/order/{id}/status")
+        {
+            Content = JsonContent.Create(new { Status = status })
+        };
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (response.IsSuccessStatusCode)
+            return (true, null);
+
+        return (false, await ApiError.ReadAsync(response, "We couldn't update this order. Please try again."));
+    }
+
+    public async Task<List<OrderModel>> GetBusinessOrdersAsync()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, "api/order/business");
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (!response.IsSuccessStatusCode)
+            return new();
+
+        return await response.Content.ReadFromJsonAsync<List<OrderModel>>() ?? new();
     }
 
     public async Task<List<OrderModel>> GetMyOrdersAsync()
@@ -36,6 +92,42 @@ public class OrderService
             return new();
 
         return await response.Content.ReadFromJsonAsync<List<OrderModel>>() ?? new();
+    }
+
+    public async Task<List<PendingReviewModel>> GetPendingReviewsAsync()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, "api/order/pending-reviews");
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (!response.IsSuccessStatusCode)
+            return new();
+
+        return await response.Content.ReadFromJsonAsync<List<PendingReviewModel>>() ?? new();
+    }
+
+    public async Task<LoyaltyStatusModel?> GetLoyaltyStatusAsync()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, "api/order/loyalty");
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<LoyaltyStatusModel>();
+    }
+
+    public async Task<(bool Success, string? Error)> ClaimLoyaltyAsync()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Post, "api/order/loyalty/claim");
+        await AddAuthAsync(req);
+
+        var response = await _http.SendAsync(req);
+        if (response.IsSuccessStatusCode)
+            return (true, null);
+
+        return (false, await ApiError.ReadAsync(response, "We couldn't claim your reward. Please try again."));
     }
 
     private async Task AddAuthAsync(HttpRequestMessage req)

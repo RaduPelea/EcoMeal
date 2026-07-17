@@ -5,50 +5,70 @@
 @using Ecomeal.client.Services
 @inject NavigationManager Navigation
 @inject BusinessService BusinessService
+@inject LocalizationService Loc
+@implements IDisposable
 
-<h2>@(Id is null ? "Add Business" : "Edit Business")</h2>
-<a class="btn btn-link px-0 mb-2" href="/">← Back to Home</a>
+<h2>@(Id is null ? Loc["manage.addBusiness"] : Loc["details.editBusiness"])</h2>
+<a class="btn btn-link px-0 mb-2" href="/manage">← @Loc["bizForm.backToManage"]</a>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
 
 <EditForm Model="business" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator/>
     <ValidationSummary/>
 
-    <label class="form-label">Name</label>
+    <label class="form-label">@Loc["common.name"]</label>
     <InputText class="form-control mb-2" @bind-Value="business.Name" />
 
-    <label class="form-label">Address</label>
+    <label class="form-label">@Loc["details.address"]</label>
     <InputText class="form-control mb-2" @bind-Value="business.Address" />
 
-    <label class="form-label">City</label>
+    <label class="form-label">@Loc["common.city"]</label>
     <InputText class="form-control mb-2" @bind-Value="business.City" />
 
-    <label class="form-label">Image URL</label>
+    <label class="form-label">@Loc["pkgForm.image"]</label>
     <InputText class="form-control mb-2" @bind-Value="business.ImageUrl" placeholder="https://... (link to a photo)" />
+    <InputFile class="form-control mb-2" OnChange="HandleImageUpload" accept=".jpg,.jpeg,.png,.webp" />
+    @if (uploadError is not null)
+    {
+        <div class="text-danger mb-2">@uploadError</div>
+    }
+    @if (!string.IsNullOrEmpty(business.ImageUrl))
+    {
+        <img src="@business.ImageUrl" alt="Preview" class="mb-2" style="max-height: 120px; border-radius: 8px;" />
+    }
 
-    <label class="form-label">Description</label>
+    <label class="form-label">@Loc["pkgForm.description"]</label>
     <InputTextArea class="form-control mb-2" rows="3" @bind-Value="business.Description" />
 
-    <label class="form-label">Contact</label>
+    <label class="form-label">@Loc["details.contact"]</label>
     <InputText class="form-control mb-2" @bind-Value="business.Contact" />
 
-    <label class="form-label">Rating</label>
-    <InputNumber class="form-control mb-2" @bind-Value="business.Rating" />
-
-    <label class="form-label">Business Type</label>
+    <label class="form-label">@Loc["bizForm.businessType"]</label>
     <InputSelect class="form-control mb-2" @bind-Value="business.BusinessTypeId">
-        <option value="0" disabled>Pick Type...</option>
+        <option value="0" disabled>@Loc["pkgForm.pickType"]</option>
         @foreach (var type in businessTypes)
         {
             <option value="@type.Id">@type.Name</option>
         }
     </InputSelect>
 
+    <label class="form-label">@Loc["bizForm.ownerEmail"]</label>
+    <InputText class="form-control mb-2" @bind-Value="business.OwnerEmail" placeholder="partner@email.com" />
+    <ValidationMessage For="@(() => business.OwnerEmail)" />
+
     <button type="submit" class="btn btn-primary mt-3">
-        @(Id is null ? "Add Business" : "Save Changes")
+        @(Id is null ? Loc["manage.addBusiness"] : Loc["common.saveChanges"])
     </button>
 </EditForm>
 
 @code {
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
     // null = add, has value = edit
     [Parameter]
     public int? Id { get; set; }
@@ -59,8 +79,22 @@
     // business types for the dropdown
     private List<BusinessTypeModel> businessTypes = new();
 
+    private string? errorMessage;
+    private string? uploadError;
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        var (url, error) = await BusinessService.UploadImageAsync(e.File);
+        if (url is null)
+            uploadError = error ?? Loc["pkgForm.uploadFailed"];
+        else
+            business.ImageUrl = url;
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        Loc.OnChanged += HandleLanguageChanged;
         businessTypes = await BusinessService.GetBusinessTypesAsync();
 
         // edit mode: load the business
@@ -74,12 +108,19 @@
 
     private async Task HandleSubmit()
     {
-        if (Id is null)
-            await BusinessService.AddBusinessAsync(business);
-        else
-            await BusinessService.UpdateBusinessAsync(Id.Value, business);
+        errorMessage = null;
 
-        // back to the home list
-        Navigation.NavigateTo("/");
+        var (success, error) = Id is null
+            ? await BusinessService.AddBusinessAsync(business)
+            : await BusinessService.UpdateBusinessAsync(Id.Value, business);
+
+        if (!success)
+        {
+            errorMessage = error ?? Loc["bizForm.saveFailed"];
+            return;
+        }
+
+        // back to the admin manage list
+        Navigation.NavigateTo("/manage");
     }
 }

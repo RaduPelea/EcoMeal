@@ -5,7 +5,7 @@
 namespace EcoMeal.api.Migrations
 {
     /// <inheritdoc />
-    public partial class lastupdate : Migration
+    public partial class LastUpdate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

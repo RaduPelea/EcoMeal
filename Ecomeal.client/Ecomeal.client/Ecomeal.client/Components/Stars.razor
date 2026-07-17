@@ -1,0 +1,23 @@
+@namespace Ecomeal.client.Components
+
+@if (Value > 0)
+{
+    <span class="stars">
+        @for (var i = 1; i <= 5; i++)
+        {
+            <Icon Name="star" Filled="@(i <= FullStars)" Class="icon-sm" />
+        }
+    </span>
+    <span class="stars-value">@Value.ToString("0.0")</span>
+}
+else
+{
+    <span class="text-muted" style="font-size: 0.85rem;">No rating yet</span>
+}
+
+@code {
+    [Parameter]
+    public decimal Value { get; set; }
+
+    private int FullStars => Math.Clamp((int)Math.Round(Value, MidpointRounding.AwayFromZero), 0, 5);
+}

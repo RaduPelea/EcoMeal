@@ -8,10 +8,13 @@ public class BusinessDTO
     public required string Name { get; set; }
     public required string Address { get; set; }
     public string City { get; set; } = "";
+    public string Country { get; set; } = "";
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public required string Contact { get; set; }
     public decimal Rating { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     
     public required string BusinessTypeName { get; set; }
 }

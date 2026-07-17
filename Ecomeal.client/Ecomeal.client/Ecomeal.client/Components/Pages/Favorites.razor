@@ -1,0 +1,90 @@
+@page "/favorites"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject FavoriteService FavoriteService
+@inject ToastService ToastService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["nav.favorites"]</PageTitle>
+
+<div class="container my-4">
+    <h1 class="mb-4"><Icon Name="favorite" Filled="true" Class="icon-rose" /> @Loc["fav.myFavorites"]</h1>
+
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border" role="status"></div></div>
+    }
+    else if (_favorites.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="favorite" Class="ico" />
+            <p class="mb-3">@Loc["fav.empty"]</p>
+            <a class="btn btn-accent" href="/order">@Loc["basket.browsePlaces"]</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var b in _favorites)
+            {
+                <div class="col-12 col-md-6 col-lg-4" @key="b.Id">
+                    <div class="card h-100">
+                        <div class="card-img-wrap">
+                            @if (!string.IsNullOrEmpty(b.ImageUrl))
+                            {
+                                <img src="@b.ImageUrl" class="card-img-eco" alt="@b.Name" />
+                            }
+                            else
+                            {
+                                <div class="card-img-placeholder"><Icon Name="restaurant" /></div>
+                            }
+                            <button class="fav-btn active" @onclick="() => Remove(b.Id)"><Icon Name="favorite" Filled="true" /></button>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@b.Name</h5>
+                            <h6 class="card-subtitle">@b.BusinessTypeName</h6>
+                            <p class="mb-1"><Stars Value="@b.Rating" /></p>
+                            <p class="small text-muted mb-3"><Icon Name="location_on" Class="icon-sm" /> @b.Address, @b.City</p>
+                            <a class="btn btn-primary mt-auto" href="@($"/business/{b.Id}")">@Loc["browse.viewOrder"]</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private bool _loaded;
+    private List<BusinessModel> _favorites = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _favorites = await FavoriteService.GetMyFavoritesAsync();
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Remove(int businessId)
+    {
+        var (state, error) = await FavoriteService.ToggleAsync(businessId);
+        if (state == false)
+        {
+            _favorites.RemoveAll(b => b.Id == businessId);
+            ToastService.ShowSuccess(Loc["fav.removed"]);
+        }
+        else if (state is null)
+        {
+            ToastService.ShowError(error ?? Loc["fav.updateFailed"]);
+        }
+    }
+}

@@ -1,31 +1,41 @@
 @page "/partner"
+@rendermode InteractiveServer
+@using Ecomeal.client.Services
+@inject LocalizationService Loc
+@implements IDisposable
 
-<PageTitle>Become a Partner</PageTitle>
+<PageTitle>@Loc["partner.title"]</PageTitle>
 
 <section class="hero" style="padding: 3rem 2rem;">
-    <h1>Become an EcoMeal partner 🤝</h1>
-    <p>Turn surplus food into revenue and reach eco-conscious customers in your city.</p>
+    <h1><Icon Name="handshake" /> @Loc["partner.heroTitle"]</h1>
+    <p>@Loc["partner.heroText"]</p>
 </section>
 
 <div class="section">
-    <div class="section-title"><h2>How to join</h2><p>Three simple steps</p></div>
+    <div class="section-title"><h2>@Loc["partner.howToJoin"]</h2><p>@Loc["partner.threeSteps"]</p></div>
     <div class="steps">
-        <div class="step"><div class="num">1</div><h3>Send us an email</h3><p>Write to <strong>admin@gmail.com</strong> and tell us you'd like to join.</p></div>
-        <div class="step"><div class="num">2</div><h3>Present your business</h3><p>Share your name, city, type of food and the kind of surplus you usually have.</p></div>
-        <div class="step"><div class="num">3</div><h3>Get onboarded</h3><p>We review, approve and add your restaurant to the app.</p></div>
+        <div class="step"><div class="num">1</div><h3>@Loc["partner.step1Title"]</h3><p>@Loc["partner.step1Text"] <strong>admin@gmail.com</strong></p></div>
+        <div class="step"><div class="num">2</div><h3>@Loc["partner.step2Title"]</h3><p>@Loc["partner.step2Text"]</p></div>
+        <div class="step"><div class="num">3</div><h3>@Loc["partner.step3Title"]</h3><p>@Loc["partner.step3Text"]</p></div>
     </div>
 </div>
 
 <div class="section">
     <div class="form-card" style="max-width: 680px;">
-        <h3 class="mb-3">Requirements</h3>
+        <h3 class="mb-3">@Loc["partner.requirements"]</h3>
         <ul>
-            <li>Only fresh, safe-to-eat food — no expired products.</li>
-            <li>Valid business registration and food-safety authorization.</li>
-            <li>Accurate pickup times and honest package descriptions.</li>
-            <li>Discounted prices compared to the original menu.</li>
-            <li>At least one physical location in a supported city.</li>
+            <li>@Loc["partner.req1"]</li>
+            <li>@Loc["partner.req2"]</li>
+            <li>@Loc["partner.req3"]</li>
+            <li>@Loc["partner.req4"]</li>
+            <li>@Loc["partner.req5"]</li>
         </ul>
-        <a class="btn btn-accent mt-2" href="mailto:admin@gmail.com">Email us at admin@gmail.com</a>
+        <a class="btn btn-accent mt-2" href="mailto:admin@gmail.com">@Loc["partner.emailUs"] admin@gmail.com</a>
     </div>
 </div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+}

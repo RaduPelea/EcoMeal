@@ -22,7 +22,7 @@ namespace EcoMeal.api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("EcoMeal.api.Models.Business", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Business", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -45,28 +45,39 @@ namespace EcoMeal.api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Rating")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int?>("OwnerId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BusinessTypeId");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("Businesses");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.BusinessType", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.BusinessType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -84,7 +95,59 @@ namespace EcoMeal.api.Migrations
                     b.ToTable("BusinessTypes");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Order", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.CustomerReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerReviews");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.Favorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessId");
+
+                    b.HasIndex("UserId", "BusinessId")
+                        .IsUnique();
+
+                    b.ToTable("Favorites");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.Order", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,8 +158,15 @@ namespace EcoMeal.api.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("LoyaltyDiscountPercent")
+                        .HasColumnType("int");
+
                     b.Property<int>("PackageId")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -113,7 +183,7 @@ namespace EcoMeal.api.Migrations
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Package", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Package", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -128,6 +198,12 @@ namespace EcoMeal.api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("DiscountHoursBeforeEnd")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DiscountPercent")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EndPickup")
                         .HasColumnType("datetime2");
 
@@ -138,11 +214,16 @@ namespace EcoMeal.api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("OriginalPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("PackageTypeId")
                         .HasColumnType("int");
 
-                    b.Property<double>("Price")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -159,7 +240,29 @@ namespace EcoMeal.api.Migrations
                     b.ToTable("Packages");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.PackageType", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.PackageImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PackageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PackageId");
+
+                    b.ToTable("PackageImages");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.PackageType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -177,7 +280,40 @@ namespace EcoMeal.api.Migrations
                     b.ToTable("PackageTypes");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.User", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BusinessId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -198,6 +334,10 @@ namespace EcoMeal.api.Migrations
                     b.Property<string>("Contact")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -205,11 +345,23 @@ namespace EcoMeal.api.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("EmailVerificationCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EmailVerificationCodeExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("HasActiveLoyaltyDiscount")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LoyaltyClaimedRewards")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
@@ -230,6 +382,9 @@ namespace EcoMeal.api.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("PreferredPackageTypes")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -387,26 +542,62 @@ namespace EcoMeal.api.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Business", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Business", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.BusinessType", "BusinessType")
+                    b.HasOne("EcoMeal.api.Entities.BusinessType", "BusinessType")
                         .WithMany("Businesses")
                         .HasForeignKey("BusinessTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EcoMeal.api.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId");
+
                     b.Navigation("BusinessType");
+
+                    b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Order", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.CustomerReview", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.Package", "Package")
+                    b.HasOne("EcoMeal.api.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.Favorite", b =>
+                {
+                    b.HasOne("EcoMeal.api.Entities.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcoMeal.api.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.Order", b =>
+                {
+                    b.HasOne("EcoMeal.api.Entities.Package", "Package")
                         .WithMany("Orders")
                         .HasForeignKey("PackageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EcoMeal.api.Models.User", "User")
+                    b.HasOne("EcoMeal.api.Entities.User", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -417,15 +608,15 @@ namespace EcoMeal.api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Package", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Package", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.Business", "Business")
+                    b.HasOne("EcoMeal.api.Entities.Business", "Business")
                         .WithMany("Packages")
                         .HasForeignKey("BusinessId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EcoMeal.api.Models.PackageType", "PackageType")
+                    b.HasOne("EcoMeal.api.Entities.PackageType", "PackageType")
                         .WithMany("Packages")
                         .HasForeignKey("PackageTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -434,6 +625,36 @@ namespace EcoMeal.api.Migrations
                     b.Navigation("Business");
 
                     b.Navigation("PackageType");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.PackageImage", b =>
+                {
+                    b.HasOne("EcoMeal.api.Entities.Package", "Package")
+                        .WithMany("Images")
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Package");
+                });
+
+            modelBuilder.Entity("EcoMeal.api.Entities.Review", b =>
+                {
+                    b.HasOne("EcoMeal.api.Entities.Business", "Business")
+                        .WithMany("Reviews")
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcoMeal.api.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -447,7 +668,7 @@ namespace EcoMeal.api.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.User", null)
+                    b.HasOne("EcoMeal.api.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -456,7 +677,7 @@ namespace EcoMeal.api.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.User", null)
+                    b.HasOne("EcoMeal.api.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -471,7 +692,7 @@ namespace EcoMeal.api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EcoMeal.api.Models.User", null)
+                    b.HasOne("EcoMeal.api.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -480,34 +701,38 @@ namespace EcoMeal.api.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
                 {
-                    b.HasOne("EcoMeal.api.Models.User", null)
+                    b.HasOne("EcoMeal.api.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Business", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Business", b =>
                 {
                     b.Navigation("Packages");
+
+                    b.Navigation("Reviews");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.BusinessType", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.BusinessType", b =>
                 {
                     b.Navigation("Businesses");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.Package", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.Package", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.PackageType", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.PackageType", b =>
                 {
                     b.Navigation("Packages");
                 });
 
-            modelBuilder.Entity("EcoMeal.api.Models.User", b =>
+            modelBuilder.Entity("EcoMeal.api.Entities.User", b =>
                 {
                     b.Navigation("Orders");
                 });

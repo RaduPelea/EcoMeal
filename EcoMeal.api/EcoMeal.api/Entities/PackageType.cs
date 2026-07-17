@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace EcoMeal.api.Models;
+namespace EcoMeal.api.Entities;
 
 public class PackageType
 {   

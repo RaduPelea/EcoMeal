@@ -2,45 +2,66 @@
 @rendermode InteractiveServer
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
-@using EcoMeal.client.Services
 @inject AuthService AuthService
+@inject ToastService ToastService
+@inject FavoriteService FavoriteService
+@inject CartService CartService
+@inject IJSRuntime JS
+@inject DistanceService DistanceService
+@inject LocalizationService Loc
+@implements IDisposable
 
 @if(_business is null)
 {
+    <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
     return;
 }
 
 <div class="container my-4">
-    <a class="btn btn-link px-0 mb-2" href="/order">← Back</a>
+    <button class="btn btn-link px-0 mb-2" @onclick="GoBack">← @Loc["common.back"]</button>
     <div class="business-banner" style="background-image:url('@_business.ImageUrl')">
         <div class="business-banner-overlay">
             <div class="d-flex justify-content-between align-items-start">
                 <h1 class="mb-2">@_business.Name</h1>
-                @if (AuthService.IsAdmin)
-                {
-                    <a class="btn btn-light btn-sm" href="@($"/business/edit/{Id}")">Edit Business</a>
-                }
+                <div class="d-flex gap-2">
+                    @if (AuthService.IsAdmin)
+                    {
+                        <a class="btn btn-light btn-sm" href="@($"/business/edit/{Id}")">@Loc["details.editBusiness"]</a>
+                    }
+                    @if (AuthService.IsAuthenticated && !AuthService.IsAdmin)
+                    {
+                        <button class="btn btn-outline-light btn-sm" @onclick="ToggleFavorite">
+                            <Icon Name="favorite" Filled="@_isFavorite" Class="@(_isFavorite ? "icon-rose" : "")" /> @(_isFavorite ? Loc["details.saved"] : Loc["details.save"])
+                        </button>
+                    }
+                </div>
             </div>
             <p class="mb-1">@_business.Description</p>
-            <p class="mb-1"><strong>Type:</strong> @_business.BusinessTypeName &nbsp;·&nbsp; <strong>City:</strong> @_business.City</p>
-            <p class="mb-0"><strong>Contact:</strong> @_business.Contact &nbsp;·&nbsp; <strong>Address:</strong> @_business.Address</p>
+            <p class="mb-1"><strong>@Loc["details.type"]:</strong> @_business.BusinessTypeName &nbsp;·&nbsp; <strong>@Loc["details.location"]:</strong> @_business.City@(string.IsNullOrEmpty(_business.Country) ? "" : $", {_business.Country}") &nbsp;·&nbsp; <Stars Value="@_business.Rating" /></p>
+            <p class="mb-0">
+                <strong>@Loc["details.contact"]:</strong> @_business.Contact &nbsp;·&nbsp; <strong>@Loc["details.address"]:</strong> @_business.Address
+                @if (_business.DistanceKm is not null)
+                {
+                    <span>&nbsp;·&nbsp; <Icon Name="directions_car" Class="icon-sm" /> @_business.DistanceKm.Value.ToString("0.0") km@(_business.DurationMinutes is not null ? $" · ~{_business.DurationMinutes} min" : "")</span>
+                }
+            </p>
         </div>
     </div>
 
 
     <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-        <h2 class="mb-0">Packages</h2>
+        <h2 class="mb-0">@Loc["details.packages"]</h2>
         @if (AuthService.IsAdmin)
         {
             <button type="button" class="btn btn-primary" @onclick="NavigateToAddPackage">
-                + Add Package
+                + @Loc["details.addPackage"]
             </button>
         }
     </div>
 
     @if (_business.Packages.Count == 0)
     {
-        <p class="text-muted">No packages yet.</p>
+        <p class="text-muted">@Loc["details.noPackages"]</p>
     }
     else
     {
@@ -49,27 +70,56 @@
             {
                 <div class="col-12 col-md-6 col-lg-4" @key="pkg.Id">
                     <div class="card h-100">
-                        @if (!string.IsNullOrEmpty(pkg.ImageUrl))
-                        {
-                            <img src="@pkg.ImageUrl" class="card-img-eco" alt="@pkg.Name" />
-                        }
+                        <div class="card-img-wrap">
+                            @if (!string.IsNullOrEmpty(pkg.ImageUrl))
+                            {
+                                <img src="@pkg.ImageUrl" class="card-img-eco" alt="@pkg.Name" />
+                            }
+                            else
+                            {
+                                <div class="card-img-placeholder"><Icon Name="restaurant" /></div>
+                            }
+                            <span class="qty-badge">@pkg.Quantity @Loc["details.left"]</span>
+                        </div>
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title">@pkg.Name</h5>
                             <h6 class="card-subtitle">@pkg.PackageTypeName</h6>
                             <p class="card-text">@pkg.Description</p>
-                            <p class="card-text mb-1"><strong>Price:</strong> @pkg.Price</p>
-                            <p class="card-text"><small class="text-muted">@pkg.StartPickup.ToString("g") - @pkg.EndPickup.ToString("g")</small></p>
+                            @if (pkg.Images.Count > 0)
+                            {
+                                <div class="pkg-thumbs mb-2">
+                                    @foreach (var img in pkg.Images)
+                                    {
+                                        <img class="pkg-thumb" src="@img" alt="@pkg.Name" />
+                                    }
+                                </div>
+                            }
+                            <p class="mb-1">
+                                @if (pkg.OriginalPrice is not null)
+                                {
+                                    <span class="price-old">@pkg.OriginalPrice.Value.ToString("0.00") lei</span>
+                                }
+                                <span class="pkg-price">@pkg.Price.ToString("0.00") lei</span>
+                                @if (pkg.OriginalPrice is not null)
+                                {
+                                    <span class="discount-badge">-@(Math.Round((1 - pkg.Price / pkg.OriginalPrice.Value) * 100))%</span>
+                                }
+                            </p>
+                            <p class="mb-2"><span class="chip"><Icon Name="schedule" Class="icon-sm" /> @pkg.StartPickup.ToString("g") – @pkg.EndPickup.ToString("g")</span></p>
 
                             @if (AuthService.IsAdmin)
                             {
                                 <div class="mt-auto d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm flex-fill" @onclick="() => NavigateToEditPackage(pkg.Id)">Edit</button>
-                                    <button class="btn btn-outline-danger btn-sm flex-fill" @onclick="() => DeletePackage(pkg.Id)">Delete</button>
+                                    <button class="btn btn-outline-primary btn-sm flex-fill" @onclick="() => NavigateToEditPackage(pkg.Id)">@Loc["common.edit"]</button>
+                                    <button class="btn btn-outline-danger btn-sm flex-fill" @onclick="() => DeletePackage(pkg.Id)">@Loc["common.delete"]</button>
                                 </div>
                             }
                             else
                             {
-                                <button class="btn btn-accent btn-sm mt-auto" @onclick="() => AskOrder(pkg)">Order</button>
+                                <div class="mt-auto d-flex gap-2">
+                                    <button class="btn btn-accent btn-sm flex-fill" @onclick="() => AskOrder(pkg)">@Loc["details.order"]</button>
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => AddToBasket(pkg)"><Icon Name="add_shopping_cart" Class="icon-sm" /></button>
+                                </div>
                             }
                         </div>
                     </div>
@@ -77,23 +127,96 @@
             }
         </div>
     }
+
+    <div class="mt-5">
+        <h2 class="mb-3">@Loc["details.reviews"]</h2>
+
+        @if (_reviews.Count == 0)
+        {
+            <p class="text-muted">@Loc["details.noReviews"]</p>
+        }
+        else
+        {
+            <div class="row g-3 mb-4">
+                @foreach (var review in _reviews)
+                {
+                    <div class="col-12 col-md-6" @key="review.Id">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="text-bright">@(string.IsNullOrEmpty(review.UserName) ? Loc["details.anonymous"] : review.UserName)</strong>
+                                    <StarRow Count="@review.Stars" />
+                                </div>
+                                @if (!string.IsNullOrEmpty(review.Comment))
+                                {
+                                    <p class="card-text mb-1">@review.Comment</p>
+                                }
+                                <small class="text-muted">@review.Date.ToString("d")</small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (AuthService.IsAuthenticated && _canReview)
+        {
+            <div class="card" style="max-width: 480px;">
+                <div class="card-body">
+                    <h5 class="card-title">@Loc["details.leaveReview"]</h5>
+                    <EditForm Model="_reviewForm" OnValidSubmit="SubmitReview">
+                        <DataAnnotationsValidator/>
+
+                        <label class="form-label">@Loc["details.stars"]</label>
+                        <InputSelect class="form-control mb-2" @bind-Value="_reviewForm.Stars">
+                            <option value="0" disabled>@Loc["review.pickRating"]</option>
+                            <option value="5">@Loc["review.excellent"]</option>
+                            <option value="4">@Loc["review.good"]</option>
+                            <option value="3">@Loc["review.okay"]</option>
+                            <option value="2">@Loc["review.poor"]</option>
+                            <option value="1">@Loc["review.bad"]</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _reviewForm.Stars)"/>
+
+                        <label class="form-label">@Loc["review.commentPlaceholder"]</label>
+                        <InputTextArea class="form-control mb-2" rows="3" @bind-Value="_reviewForm.Comment"/>
+
+                        <button type="submit" class="btn btn-primary">@Loc["review.submitReview"]</button>
+                    </EditForm>
+                </div>
+            </div>
+        }
+        else if (!AuthService.IsAuthenticated)
+        {
+            <p class="text-muted"><a href="/login">@Loc["nav.login"]</a> @Loc["details.loginToReview"]</p>
+        }
+        else
+        {
+            <p class="text-muted">@Loc["details.reviewAfterPickup"]</p>
+        }
+    </div>
 </div>
 
 @if (_orderPkg is not null)
 {
     <div class="eco-modal-backdrop" @onclick="() => _orderPkg = null">
         <div class="eco-modal" @onclick:stopPropagation="true">
-            <h3>Place this order?</h3>
-            <p>Are you sure you want to order <strong>@_orderPkg.Name</strong> for @_orderPkg.Price? It will be reserved for you and removed from the list.</p>
+            <h3>@Loc["details.placeThisOrder"]</h3>
+            <p>@string.Format(Loc["details.orderConfirmText"], _orderPkg.Name, _orderPkg.Price)</p>
             <div class="actions">
-                <button class="btn btn-outline-secondary" @onclick="() => _orderPkg = null">Cancel</button>
-                <button class="btn btn-accent" @onclick="ConfirmOrder">Yes, order it</button>
+                <button class="btn btn-outline-secondary" @onclick="() => _orderPkg = null">@Loc["logout.cancel"]</button>
+                <button class="btn btn-accent" @onclick="ConfirmOrder">@Loc["details.yesOrder"]</button>
             </div>
         </div>
     </div>
 }
 
 @code {
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+
     [Parameter]
     public int Id { get; set; }
 
@@ -104,10 +227,60 @@
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
-    private BusinessDetailsModel? _business;
+    [Inject]
+    public required ReviewService ReviewService { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    private BusinessDetailsModel? _business;
+    private List<ReviewModel> _reviews = new();
+    private ReviewAddModel _reviewForm = new();
+    private bool _isFavorite;
+    private bool _canReview;
+    private double[]? _userPos;
+
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private async Task ApplyDistanceAsync()
     {
+        if (_userPos is null || _business?.Latitude is null || _business.Longitude is null)
+            return;
+
+        var results = await DistanceService.GetDrivingAsync(_userPos[0], _userPos[1],
+            new List<(double, double)?> { (_business.Latitude.Value, _business.Longitude.Value) });
+        _business.DistanceKm = results[0]?.Km;
+        _business.DurationMinutes = results[0]?.Minutes;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_business?.Id != Id)
+        {
+            _business = await BusinessService.GetOneById(Id);
+            await ApplyDistanceAsync();
+            _reviews = await ReviewService.GetForBusinessAsync(Id);
+            _reviewForm = new ReviewAddModel { BusinessId = Id };
+
+            if (AuthService.IsAuthenticated)
+            {
+                var favoriteIds = await FavoriteService.GetMyFavoriteIdsAsync();
+                _isFavorite = favoriteIds.Contains(Id);
+                _canReview = await ReviewService.CanReviewAsync(Id);
+            }
+        }
+    }
+
+    private async Task SubmitReview()
+    {
+        var (success, error) = await ReviewService.SubmitAsync(_reviewForm);
+        if (!success)
+        {
+            ToastService.ShowError(error ?? "We Couldn't Save Your Review. Please try again in a moment.");
+            return;
+        }
+
+        ToastService.ShowSuccess("Review Submitted Successfully! Thanks for sharing your experience.");
+        _reviews = await ReviewService.GetForBusinessAsync(Id);
         _business = await BusinessService.GetOneById(Id);
     }
 
@@ -116,8 +289,59 @@
         if (firstRender)
         {
             await AuthService.LoadTokenAsync();
+            if (AuthService.IsAuthenticated)
+            {
+                var favoriteIds = await FavoriteService.GetMyFavoriteIdsAsync();
+                _isFavorite = favoriteIds.Contains(Id);
+                _canReview = await ReviewService.CanReviewAsync(Id);
+            }
+
+            _userPos = await JS.InvokeAsync<double[]?>("ecoGetLocation");
+            await ApplyDistanceAsync();
             StateHasChanged();
         }
+    }
+
+    private void AddToBasket(PackageModel pkg)
+    {
+        if (_business is null)
+            return;
+
+        var result = CartService.Add(new CartItemModel
+        {
+            PackageId = pkg.Id,
+            Name = pkg.Name,
+            Price = pkg.Price,
+            ImageUrl = pkg.ImageUrl,
+            BusinessId = _business.Id,
+            BusinessName = _business.Name
+        });
+
+        switch (result)
+        {
+            case CartAddResult.Added:
+                ToastService.ShowSuccess($"'{pkg.Name}' Added to Your Basket! Add more or head to checkout when ready.");
+                break;
+            case CartAddResult.AlreadyInBasket:
+                ToastService.ShowError("That Package Is Already in Your Basket.");
+                break;
+            case CartAddResult.DifferentBusiness:
+                ToastService.ShowError($"Your Basket Already Has Items from {CartService.BusinessName}. Please finish or clear that order first.");
+                break;
+        }
+    }
+
+    private async Task ToggleFavorite()
+    {
+        var (state, error) = await FavoriteService.ToggleAsync(Id);
+        if (state is null)
+        {
+            ToastService.ShowError(error ?? "We Couldn't Update Your Favorites. Please try again.");
+            return;
+        }
+
+        _isFavorite = state.Value;
+        ToastService.ShowSuccess(_isFavorite ? "Added to Your Favorites!" : "Removed from Your Favorites.");
     }
 
     public void NavigateToAddPackage()
@@ -132,9 +356,16 @@
 
     private async Task DeletePackage(int packageId)
     {
-        var ok = await BusinessService.DeletePackageAsync(packageId);
-        if (ok)
+        var (success, error) = await BusinessService.DeletePackageAsync(packageId);
+        if (success)
+        {
             _business?.Packages.RemoveAll(p => p.Id == packageId);
+            ToastService.ShowSuccess("Package Deleted Successfully!");
+        }
+        else
+        {
+            ToastService.ShowError(error ?? "We Couldn't Delete This Package. Please try again.");
+        }
     }
 
     private PackageModel? _orderPkg;
@@ -148,8 +379,15 @@
         var id = _orderPkg.Id;
         _orderPkg = null;
 
-        var ok = await OrderService.PlaceOrderAsync(id);
-        if (ok)
-            _business?.Packages.RemoveAll(p => p.Id == id);
+        var (order, error) = await OrderService.PlaceOrderAsync(id);
+        if (order is not null)
+        {
+            ToastService.ShowSuccess("Order Placed Successfully! Check My Orders to track its status.");
+            NavigationManager.NavigateTo($"/order-confirmed/{order.Id}");
+        }
+        else
+        {
+            ToastService.ShowError(error ?? "We Couldn't Place Your Order. Please try again in a moment.");
+        }
     }
 }

@@ -1,37 +1,63 @@
 @page "/order"
 @rendermode InteractiveServer
+@using Ecomeal.client.Components
+@using Ecomeal.client.Services
 @inject NavigationManager Nav
+@inject AuthService AuthService
+@inject LocalizationService Loc
+@implements IDisposable
 
-<PageTitle>Order</PageTitle>
+<PageTitle>@Loc["nav.order"]</PageTitle>
 
 <section class="hero" style="padding: 3rem 2rem;">
-    <h1>What are you craving? 🍽️</h1>
-    <p>Pick a category and discover discounted meals near you.</p>
+    <h1><Icon Name="restaurant" /> @Loc["order.heroTitle"]</h1>
+    <p>@Loc["order.heroText"]</p>
+    <div class="page-search">
+        <SearchBox />
+    </div>
 </section>
 
 <div class="section category-grid">
     <div class="category-card" @onclick='() => Go("Fast Food")'>
-        <span class="ico">🍔</span>
+        <Icon Name="lunch_dining" Class="ico" />
         <h3>Fast Food</h3>
-        <p class="text-muted">Burgers, pizza, quick bites</p>
+        <p class="text-muted">@Loc["order.fastFoodDesc"]</p>
+        @if (IsPreferred("Fast Food")) { <span class="chip status-new">★ @Loc["order.recommended"]</span> }
     </div>
     <div class="category-card" @onclick='() => Go("Bakery")'>
-        <span class="ico">🥐</span>
+        <Icon Name="bakery_dining" Class="ico" />
         <h3>Bakery</h3>
-        <p class="text-muted">Pastries, bread, sweets</p>
+        <p class="text-muted">@Loc["order.bakeryDesc"]</p>
+        @if (IsPreferred("Bakery")) { <span class="chip status-new">★ @Loc["order.recommended"]</span> }
     </div>
     <div class="category-card" @onclick='() => Go("Fine Dining")'>
-        <span class="ico">🍽️</span>
+        <Icon Name="restaurant" Class="ico" />
         <h3>Fine Dining</h3>
-        <p class="text-muted">Restaurant-quality meals</p>
+        <p class="text-muted">@Loc["order.fineDiningDesc"]</p>
+        @if (IsPreferred("Fine Dining")) { <span class="chip status-new">★ @Loc["order.recommended"]</span> }
     </div>
 </div>
 
 <div class="cta-band">
-    <h2>Fresh food, better prices 🌿</h2>
-    <p>All our partners follow strict freshness standards — and every order helps reduce food waste.</p>
+    <h2><Icon Name="eco" Filled="true" Class="icon-accent" /> @Loc["order.bandTitle"]</h2>
+    <p>@Loc["order.bandText"]</p>
 </div>
 
 @code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
     private void Go(string category) => Nav.NavigateTo($"/order/{Uri.EscapeDataString(category)}");
+
+    private bool IsPreferred(string category) =>
+        AuthService.PreferredPackageTypes?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(category) == true;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            StateHasChanged();
+    }
 }

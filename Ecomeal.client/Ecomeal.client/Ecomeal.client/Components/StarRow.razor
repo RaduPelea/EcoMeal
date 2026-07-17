@@ -1,0 +1,13 @@
+@namespace Ecomeal.client.Components
+
+<span class="stars">
+    @for (var i = 1; i <= 5; i++)
+    {
+        <Icon Name="star" Filled="@(i <= Count)" Class="icon-sm" />
+    }
+</span>
+
+@code {
+    [Parameter]
+    public int Count { get; set; }
+}

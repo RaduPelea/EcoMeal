@@ -4,48 +4,104 @@
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
 @inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject LocalizationService Loc
+@implements IDisposable
 
-<h2>@(PackageId is null ? "Add Package" : "Edit Package")</h2>
-<a class="btn btn-link px-0 mb-2" href="@($"/business/{BusinessId}")">← Back</a>
+<h2>@(PackageId is null ? Loc["pkgForm.addTitle"] : Loc["pkgForm.editTitle"])</h2>
+<a class="btn btn-link px-0 mb-2" href="@BackUrl">← @Loc["common.back"]</a>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
 
 <EditForm Model="PackageAddModel" OnValidSubmit="HandleSubmit">
     <DataAnnotationsValidator/>
     <ValidationSummary/>
-    <label class="form-label">Name</label>
+    <label class="form-label">@Loc["common.name"]</label>
     <InputText class="form-control mb-2"
                @bind-Value="PackageAddModel.Name"
-               placeholder="Add Package Name" />
+               placeholder="@Loc["pkgForm.namePlaceholder"]" />
     <ValidationMessage For="@(() => PackageAddModel.Name)"/>
-    <label class="form-label">Description</label>
+    <label class="form-label">@Loc["pkgForm.description"]</label>
     <InputTextArea @bind-Value="PackageAddModel.Description"
-                   placeholder="Description"
+                   placeholder="@Loc["pkgForm.description"]"
                    rows="4"
                    class="form-control mb-2" />
 
-    <label class="form-label">Image URL</label>
+    <label class="form-label">@Loc["pkgForm.image"]</label>
     <InputText @bind-Value="PackageAddModel.ImageUrl"
                placeholder="https://... (link to a photo)"
                class="form-control mb-2" />
+    <InputFile class="form-control mb-2" OnChange="HandleImageUpload" accept=".jpg,.jpeg,.png,.webp" />
+    @if (uploadError is not null)
+    {
+        <div class="text-danger mb-2">@uploadError</div>
+    }
+    @if (!string.IsNullOrEmpty(PackageAddModel.ImageUrl))
+    {
+        <img src="@PackageAddModel.ImageUrl" alt="Preview" class="mb-2" style="max-height: 120px; border-radius: 8px;" />
+    }
 
-    <label class="form-label">Price</label>
+    <label class="form-label">@Loc["pkgForm.extraPhotos"]</label>
+    <InputFile class="form-control mb-2" OnChange="HandleExtraImagesUpload" accept=".jpg,.jpeg,.png,.webp" multiple />
+    @if (PackageAddModel.ImageUrls.Count > 0)
+    {
+        <div class="img-preview-row mb-2">
+            @foreach (var url in PackageAddModel.ImageUrls)
+            {
+                <div class="img-preview-item" @key="url">
+                    <img src="@url" alt="Extra photo" />
+                    <button type="button" @onclick="() => RemoveExtraImage(url)">✕</button>
+                </div>
+            }
+        </div>
+    }
+
+    <label class="form-label">@Loc["bizOrders.price"]</label>
     <InputNumber @bind-Value="PackageAddModel.Price"
-                 placeholder="Price"
+                 placeholder="@Loc["bizOrders.price"]"
                  class="form-control mb-2" />
 
-    <label class="form-label">Start Pick-up</label>
+    <label class="form-label">@Loc["pkgForm.quantity"]</label>
+    <InputNumber @bind-Value="PackageAddModel.Quantity"
+                 class="form-control mb-2" />
+    <ValidationMessage For="@(() => PackageAddModel.Quantity)" />
+
+    <label class="form-label">@Loc["pkgForm.startPickup"]</label>
     <InputDate @bind-Value="PackageAddModel.StartPickup"
                Type="InputDateType.DateTimeLocal"
                class="form-control mb-2" />
 
-    <label class="form-label">End Pick-up</label>
+    <label class="form-label">@Loc["pkgForm.endPickup"]</label>
     <InputDate @bind-Value="PackageAddModel.EndPickup"
                Type="InputDateType.DateTimeLocal"
                class="form-control mb-2" />
 
-    <label class="form-label">Package Type</label>
+    <label class="form-label">@Loc["pkgForm.discountPlan"]</label>
+    <select class="form-control mb-2" value="@_discountMode" @onchange="e => SetDiscountMode((string)e.Value!)">
+        <option value="none">@Loc["pkgForm.noDiscount"]</option>
+        <option value="immediate">@Loc["pkgForm.immediateDiscount"]</option>
+        <option value="scheduled">@Loc["pkgForm.scheduledDiscount"]</option>
+    </select>
+
+    @if (_discountMode != "none")
+    {
+        <label class="form-label">@Loc["pkgForm.discountPercent"]</label>
+        <InputNumber @bind-Value="PackageAddModel.DiscountPercent" class="form-control mb-2" min="5" max="90" placeholder="e.g. 25" />
+    }
+    @if (_discountMode == "scheduled")
+    {
+        <label class="form-label">@Loc["pkgForm.hoursBefore"]</label>
+        <InputNumber @bind-Value="PackageAddModel.DiscountHoursBeforeEnd" class="form-control mb-2" min="1" max="48" placeholder="e.g. 2" />
+        <small class="text-muted d-block mb-2">@Loc["pkgForm.scheduledHint"]</small>
+    }
+
+    <label class="form-label">@Loc["pkgForm.packageType"]</label>
     <InputSelect @bind-Value="PackageAddModel.PackageTypeId"
                  class="form-control mb-2">
-        <option value="0" disabled>Pick Type...</option>
+        <option value="0" disabled>@Loc["pkgForm.pickType"]</option>
         @foreach (var type in packageTypes)
         {
             <option value="@type.Id">@type.Name</option>
@@ -53,12 +109,16 @@
     </InputSelect>
 
     <button type="submit" class="btn btn-primary mt-3">
-        @(PackageId is null ? "Add Package" : "Save Changes")
+        @(PackageId is null ? Loc["pkgForm.addTitle"] : Loc["common.saveChanges"])
     </button>
 
 </EditForm>
 
 @code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
     // from the URL
     [Parameter]
     public int BusinessId { get; set; }
@@ -76,6 +136,66 @@
     // package types for the dropdown
     private List<PackageTypeModel> packageTypes = new();
 
+    private string? errorMessage;
+    private string? uploadError;
+    private string _discountMode = "none";
+
+    private void SetDiscountMode(string mode)
+    {
+        _discountMode = mode;
+        if (mode == "none")
+        {
+            PackageAddModel.DiscountPercent = null;
+            PackageAddModel.DiscountHoursBeforeEnd = null;
+        }
+        else if (mode == "immediate")
+        {
+            PackageAddModel.DiscountPercent ??= 25;
+            PackageAddModel.DiscountHoursBeforeEnd = null;
+        }
+        else
+        {
+            PackageAddModel.DiscountPercent ??= 25;
+            PackageAddModel.DiscountHoursBeforeEnd ??= 2;
+        }
+    }
+
+    private string BackUrl => AuthService.IsPartner ? "/my-business" : $"/business/{BusinessId}";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            StateHasChanged();
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        var (url, error) = await BusinessService.UploadImageAsync(e.File);
+        if (url is null)
+            uploadError = error ?? Loc["pkgForm.uploadFailed"];
+        else
+            PackageAddModel.ImageUrl = url;
+    }
+
+    private async Task HandleExtraImagesUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        foreach (var file in e.GetMultipleFiles(5))
+        {
+            var (url, error) = await BusinessService.UploadImageAsync(file);
+            if (url is null)
+                uploadError = error ?? Loc["pkgForm.uploadFailed"];
+            else if (!PackageAddModel.ImageUrls.Contains(url))
+                PackageAddModel.ImageUrls.Add(url);
+        }
+    }
+
+    private void RemoveExtraImage(string url)
+    {
+        PackageAddModel.ImageUrls.Remove(url);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         packageTypes = await BusinessService.GetPackageTypesAsync();
@@ -91,29 +211,36 @@
                     Name = existing.Name,
                     Description = existing.Description,
                     ImageUrl = existing.ImageUrl,
-                    Price = existing.Price,
+                    Price = existing.OriginalPrice ?? existing.Price,
+                    DiscountPercent = existing.DiscountPercent,
+                    DiscountHoursBeforeEnd = existing.DiscountHoursBeforeEnd,
+                    Quantity = existing.Quantity,
                     StartPickup = existing.StartPickup,
                     EndPickup = existing.EndPickup,
-                    PackageTypeId = existing.PackageTypeId
+                    PackageTypeId = existing.PackageTypeId,
+                    ImageUrls = existing.Images.ToList()
                 };
+                _discountMode = existing.DiscountPercent is null ? "none"
+                    : existing.DiscountHoursBeforeEnd is null ? "immediate" : "scheduled";
             }
         }
     }
 
     private async Task HandleSubmit()
     {
-        if (PackageId is null)
+        errorMessage = null;
+
+        var (success, error) = PackageId is null
+            ? await BusinessService.AddPackageToBusiness(BusinessId, PackageAddModel)
+            : await BusinessService.UpdatePackageAsync(PackageId.Value, PackageAddModel);
+
+        if (!success)
         {
-            // add
-            await BusinessService.AddPackageToBusiness(BusinessId, PackageAddModel);
-        }
-        else
-        {
-            // edit
-            await BusinessService.UpdatePackageAsync(PackageId.Value, PackageAddModel);
+            errorMessage = error ?? Loc["pkgForm.saveFailed"];
+            return;
         }
 
-        // back to the business page
-        Navigation.NavigateTo($"/business/{BusinessId}");
+        // back to where the partner/admin manages this business
+        Navigation.NavigateTo(BackUrl);
     }
 }

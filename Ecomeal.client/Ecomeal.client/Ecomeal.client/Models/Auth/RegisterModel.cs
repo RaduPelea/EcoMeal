@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace EcoMeal.client.Models.Auth;
+namespace Ecomeal.client.Models.Auth;
 
 public class RegisterModel
 {

@@ -1,0 +1,70 @@
+@namespace Ecomeal.client.Components
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject LocalizationService Loc
+@inject BusinessService BusinessService
+@inject NavigationManager Navigation
+
+<div class="nav-search">
+    <input class="nav-search-input"
+           placeholder="@Loc["search.placeholder"]"
+           value="@_query"
+           @oninput="OnInput"
+           @onblur="CloseSoon" />
+    @if (_results.Count > 0)
+    {
+        <div class="search-dropdown">
+            @foreach (var result in _results)
+            {
+                <div class="search-item" @onmousedown="() => GoTo(result)">
+                    <Icon Name="@(result.Type == "Business" ? "storefront" : "lunch_dining")" />
+                    <span class="search-item-name">@result.Name</span>
+                    <span class="search-item-detail">@result.Detail</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _query = "";
+    private List<SearchResultModel> _results = new();
+    private CancellationTokenSource? _debounce;
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+
+        _debounce?.Cancel();
+        _debounce = new CancellationTokenSource();
+        var token = _debounce.Token;
+
+        if (_query.Trim().Length < 2)
+        {
+            _results.Clear();
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(300, token);
+            _results = await BusinessService.SearchAsync(_query);
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private void GoTo(SearchResultModel result)
+    {
+        _query = "";
+        _results.Clear();
+        Navigation.NavigateTo($"/business/{result.BusinessId}");
+    }
+
+    private async Task CloseSoon()
+    {
+        await Task.Delay(200);
+        _results.Clear();
+    }
+}

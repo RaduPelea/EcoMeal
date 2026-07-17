@@ -1,8 +1,10 @@
 @namespace Ecomeal.client.Components.BusinessCard
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
+@inject Ecomeal.client.Services.LocalizationService Loc
 @inject BusinessService BusinessService
 @inject NavigationManager Navigation
+@inject ToastService ToastService
 
 
 
@@ -12,20 +14,20 @@
         <h6 class="card-subtitle mb-2 text-muted">@Business.BusinessTypeName</h6>
         <p class="card-text">@Business.Description</p>
 
-        <ul class="list-unstyled small mb-3"> 
-            <li>📍 @Business.Address</li>
-            <li>✉️ @Business.Contact</li>
-            <li>⭐ @Business.Rating</li>
+        <p class="mb-1"><Stars Value="@Business.Rating" /></p>
+        <ul class="list-unstyled small mb-3">
+            <li><Icon Name="location_on" Class="icon-sm" /> @Business.Address</li>
+            <li><Icon Name="mail" Class="icon-sm" /> @Business.Contact</li>
         </ul>
 
         <div class="mt-auto d-flex gap-2">
             <button class="btn btn-outline-primary flex-fill" @onclick="NavigateToDetails">
-                Details
+                @Loc["card.details"]
             </button>
             <button class="btn btn-danger flex-fill"
                     @onclick="DeleteAsync"
                     disabled="@_isDeleting">
-                @(_isDeleting ? "Deleting..." : "Delete")
+                @(_isDeleting ? Loc["card.deleting"] : Loc["common.delete"])
             </button>
         </div>
     </div>
@@ -46,13 +48,18 @@
     private async Task DeleteAsync()
     {
         _isDeleting = true;
-        var success = await BusinessService.DeleteAsync(Business.Id);
+        var (success, error) = await BusinessService.DeleteAsync(Business.Id);
         _isDeleting = false;
 
         if (success)
         {
             // call la lista ca afacerea a fost stearsa
             await OnDeleted.InvokeAsync(Business.Id);
+            ToastService.ShowSuccess(Loc["card.deleted"]);
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["card.deleteFailed"]);
         }
     }
     // Navigheaza la pagina de detalii (/business/{id})

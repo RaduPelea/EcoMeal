@@ -2,16 +2,20 @@
 @using Ecomeal.client.Components.BusinessCard
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
+@inject Ecomeal.client.Services.LocalizationService Loc
 @inject BusinessService BusinessService
 
 
 @if (businesses is null)
 {
-    <p>Loading...</p>
+    <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
 }
 else if (businesses.Count == 0)
 {
-    <p>No businesses found.</p>
+    <div class="empty-state">
+        <Icon Name="storefront" Class="ico" />
+        <p>@Loc["manage.noBusinesses"]</p>
+    </div>
 }
 else
 {

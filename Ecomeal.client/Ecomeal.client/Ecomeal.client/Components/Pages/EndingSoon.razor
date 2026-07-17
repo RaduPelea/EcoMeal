@@ -1,0 +1,94 @@
+@page "/ending-soon"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject PackageService PackageService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>Ending Soon</PageTitle>
+
+<div class="container">
+    <h1 class="mb-1">@Loc["endingSoon.title"] <Icon Name="alarm" Class="icon-accent" /></h1>
+    <p class="text-muted mb-4">@Loc["endingSoon.subtitle"]</p>
+
+    @if (_packages is null)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else if (_packages.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="alarm" Class="ico" />
+            <p>@Loc["endingSoon.empty"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var p in _packages)
+            {
+                <div class="col-12 col-md-6 col-lg-4" @key="p.PackageId">
+                    <div class="card h-100">
+                        <div class="card-img-wrap">
+                            @if (!string.IsNullOrEmpty(p.ImageUrl))
+                            {
+                                <img class="card-img-eco" src="@p.ImageUrl" alt="@p.Name" />
+                            }
+                            else
+                            {
+                                <div class="card-img-placeholder">🍽️</div>
+                            }
+                            <span class="qty-badge">@p.Quantity left</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@p.Name</h5>
+                            <h6 class="card-subtitle">@p.BusinessName · @p.City</h6>
+                            <p class="mb-2">
+                                @if (p.OriginalPrice is not null)
+                                {
+                                    <span class="price-old">@p.OriginalPrice.Value.ToString("0.00") lei</span>
+                                }
+                                <span class="pkg-price">@p.Price.ToString("0.00") lei</span>
+                                @if (p.OriginalPrice is not null)
+                                {
+                                    <span class="discount-badge">-@(Math.Round((1 - p.Price / p.OriginalPrice.Value) * 100))%</span>
+                                }
+                            </p>
+                            <p class="mb-3"><span class="chip"><Icon Name="schedule" Class="icon-sm" /> @Loc["endingSoon.until"] @p.EndPickup.ToString("HH:mm, d MMM")</span></p>
+                            <a class="btn btn-accent btn-sm mt-auto align-self-start" href="/business/@p.BusinessId">@Loc["endingSoon.view"]</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<EndingSoonModel>? _packages;
+
+    protected override void OnInitialized()
+    {
+        Loc.OnChanged += HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Loc.OnChanged -= HandleLanguageChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _packages = await PackageService.GetEndingSoonAsync();
+            StateHasChanged();
+        }
+    }
+}

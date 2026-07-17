@@ -1,0 +1,117 @@
+@page "/my-business/orders"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject OrderService OrderService
+@inject ToastService ToastService
+@inject ReviewPromptService ReviewPromptService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["nav.receivedOrders"]</PageTitle>
+
+<div class="container my-4">
+    <h1 class="mb-4">@Loc["nav.receivedOrders"]</h1>
+
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else if (_orders.Count == 0)
+    {
+        <div class="empty-state">
+            <Icon Name="receipt_long" Class="ico" />
+            <p>@Loc["bizOrders.empty"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>@Loc["bizOrders.package"]</th>
+                        <th>@Loc["bizOrders.price"]</th>
+                        <th>@Loc["bizOrders.customer"]</th>
+                        <th>@Loc["details.contact"]</th>
+                        <th>@Loc["bizOrders.date"]</th>
+                        <th>@Loc["bizOrders.status"]</th>
+                        <th>@Loc["bizOrders.actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in _orders)
+                    {
+                        <tr @key="order.Id">
+                            <td>@order.PackageName</td>
+                            <td>@order.Price.ToString("0.00") lei</td>
+                            <td>
+                                @order.UserName
+                                @if (order.CustomerRating is not null)
+                                {
+                                    <span class="chip status-pickedup ms-1" title="@string.Format(Loc["profile.ratingsFrom"], order.CustomerRatingCount)">★ @order.CustomerRating.Value.ToString("0.0")</span>
+                                }
+                                else
+                                {
+                                    <span class="chip ms-1" title="@Loc["bizOrders.noRatingsYet"]">★ @Loc["bizOrders.newCustomer"]</span>
+                                }
+                            </td>
+                            <td>@order.UserContact</td>
+                            <td>@order.Date.ToString("g")</td>
+                            <td><span class="chip status-@order.Status.ToLower()">@Loc[$"status.{order.Status.ToLower()}"]</span></td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    @if (order.Status == "New")
+                                    {
+                                        <button class="btn btn-primary btn-sm" @onclick='() => SetStatus(order.Id, "Confirmed")'>@Loc["bizOrders.confirm"]</button>
+                                    }
+                                    @if (order.Status is "New" or "Confirmed")
+                                    {
+                                        <button class="btn btn-outline-primary btn-sm" @onclick='() => SetStatus(order.Id, "PickedUp")'>@Loc["bizOrders.pickedUp"]</button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick='() => SetStatus(order.Id, "Cancelled")'>@Loc["logout.cancel"]</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private bool _loaded;
+    private List<OrderModel> _orders = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _orders = await OrderService.GetBusinessOrdersAsync();
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetStatus(int orderId, string status)
+    {
+        var (success, error) = await OrderService.UpdateStatusAsync(orderId, status);
+        if (success)
+        {
+            _orders = await OrderService.GetBusinessOrdersAsync();
+            ToastService.ShowSuccess(Loc["bizOrders.statusUpdated"]);
+
+            if (status == "PickedUp")
+                ReviewPromptService.RequestCheck();
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["bizOrders.statusFailed"]);
+        }
+    }
+}

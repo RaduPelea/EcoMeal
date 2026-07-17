@@ -12,4 +12,9 @@ public class BusinessModel
     public required string Contact { get; set; }
     public decimal Rating { get; set; }
     public required string BusinessTypeName { get; set; }
+    public string Country { get; set; } = "";
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public double? DistanceKm { get; set; }
+    public int? DurationMinutes { get; set; }
 }

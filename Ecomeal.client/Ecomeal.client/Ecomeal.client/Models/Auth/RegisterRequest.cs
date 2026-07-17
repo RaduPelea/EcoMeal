@@ -1,4 +1,4 @@
-namespace EcoMeal.client.Models.Auth;
+﻿namespace Ecomeal.client.Models.Auth;
 
 public class RegisterRequest
 {

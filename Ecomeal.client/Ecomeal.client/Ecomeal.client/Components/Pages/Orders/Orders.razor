@@ -3,19 +3,26 @@
 @using Ecomeal.client.Models
 @using Ecomeal.client.Services
 @inject OrderService OrderService
+@inject ToastService ToastService
+@inject LocalizationService Loc
+@implements IDisposable
 
-<PageTitle>My orders</PageTitle>
+<PageTitle>@Loc["orders.title"]</PageTitle>
 
 <div class="container">
-    <h1 class="mb-4">My orders</h1>
+    <h1 class="mb-4">@Loc["orders.title"]</h1>
 
     @if (MyOrders is null)
     {
-        <p>Loading ...</p>
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
     }
     else if (MyOrders.Count == 0)
     {
-        <p class="text-muted">You have no orders yet.</p>
+        <div class="empty-state">
+            <Icon Name="shopping_cart" Class="ico" />
+            <p class="mb-3">@Loc["orders.empty"]</p>
+            <a class="btn btn-accent" href="/order">@Loc["orders.findDeal"]</a>
+        </div>
     }
     else
     {
@@ -25,11 +32,33 @@
                 <div class="col-12 col-md-6 col-lg-4" @key="o.Id">
                     <div class="card h-100">
                         <div class="card-body d-flex flex-column">
-                            <h5 class="card-title">@o.PackageName</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">@o.PackageName</h5>
+                                @if (o.IsExpired)
+                                {
+                                    <span class="chip status-cancelled">@Loc["orders.notPickedUp"]</span>
+                                }
+                                else
+                                {
+                                    <span class="chip status-@o.Status.ToLower()">@Loc[$"status.{o.Status.ToLower()}"]</span>
+                                }
+                            </div>
                             <h6 class="card-subtitle">@o.BusinessName</h6>
-                            <p class="card-text mb-1"><strong>Price:</strong> @o.Price</p>
-                            <p class="card-text mb-1"><strong>Status:</strong> @o.Status</p>
+                            <p class="mb-2">
+                                <span class="pkg-price">@o.Price.ToString("0.00") lei</span>
+                                @if (o.LoyaltyDiscountPercent is not null)
+                                {
+                                    <span class="discount-badge">-@(o.LoyaltyDiscountPercent)% @Loc["orders.loyaltyBadge"]</span>
+                                }
+                            </p>
                             <p class="card-text"><small class="text-muted">@o.Date.ToString("g")</small></p>
+                            @if (o.Status is "New" or "Confirmed" && !o.IsExpired)
+                            {
+                                <button class="btn btn-outline-danger btn-sm mt-auto align-self-start"
+                                        @onclick="() => CancelOrder(o.Id)">
+                                    @Loc["orders.cancel"]
+                                </button>
+                            }
                         </div>
                     </div>
                 </div>
@@ -41,12 +70,30 @@
 @code {
     private List<OrderModel>? MyOrders;
 
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             MyOrders = await OrderService.GetMyOrdersAsync();
             StateHasChanged();
+        }
+    }
+
+    private async Task CancelOrder(int id)
+    {
+        var (success, error) = await OrderService.UpdateStatusAsync(id, "Cancelled");
+        if (success)
+        {
+            MyOrders = await OrderService.GetMyOrdersAsync();
+            ToastService.ShowSuccess(Loc["orders.cancelled"]);
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["orders.cancelFailed"]);
         }
     }
 }

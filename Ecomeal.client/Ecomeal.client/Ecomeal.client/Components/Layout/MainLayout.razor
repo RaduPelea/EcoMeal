@@ -1,33 +1,92 @@
 @inherits LayoutComponentBase
-@using EcoMeal.client.Services
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
 @inject AuthService AuthService
 @inject NavigationManager Navigation
+@inject ToastService ToastService
+@inject CartService CartService
+@inject OrderService OrderService
+@inject ReviewService ReviewService
+@inject ReviewPromptService ReviewPromptService
+@inject LocalizationService Loc
+@inject IJSRuntime JS
+@implements IDisposable
 
-<div class="page">
+<div class="page @(IsAnimatedPage ? "bg-animated" : "")">
     <nav class="eco-navbar">
-        <a class="eco-brand" href="/">🌿 EcoMeal</a>
-        <div class="eco-nav-links">
-            <a href="/">Home</a>
-            <a href="/order">Order</a>
-            @if (AuthService.IsAdmin)
-            {
-                <a href="/manage">Manage</a>
-            }
-        </div>
-        <div class="eco-nav-actions">
-            @if (AuthService.IsAuthenticated)
-            {
-                <a class="btn btn-outline-light btn-sm" href="/orders">My Orders</a>
-                <span class="eco-city">📍 @(string.IsNullOrEmpty(AuthService.City) ? "No city" : AuthService.City)</span>
-                <a class="btn btn-outline-light btn-sm" href="/change-city">Change city</a>
-                <button class="btn btn-outline-light btn-sm" @onclick="() => showLogoutConfirm = true">Logout</button>
-            }
-            else
-            {
-                <a class="btn btn-light btn-sm" href="/login">Login</a>
-                <a class="btn btn-accent btn-sm" href="/register">Sign Up</a>
-            }
-        </div>
+        <a class="eco-brand" href="/"><Icon Name="eco" Filled="true" /> EcoMeal</a>
+
+        @if (AuthService.IsAdmin)
+        {
+            <div class="eco-nav-links">
+                <a href="/manage">@Loc["nav.manage"]</a>
+                <a href="/admin/stats">@Loc["nav.stats"]</a>
+                <a href="/admin/users">@Loc["nav.users"]</a>
+            </div>
+            <div class="eco-nav-actions">
+                <span class="role-badge">Admin</span>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => showLogoutConfirm = true">@Loc["nav.logout"]</button>
+                <button class="btn btn-outline-primary btn-sm" title="Switch theme" @onclick="ToggleTheme">
+                    <Icon Name="@(_theme == "dark" ? "light_mode" : "dark_mode")" />
+                </button>
+                <button class="btn btn-outline-primary btn-sm" title="Language" @onclick="ToggleLanguage">
+                    @(Loc.Language == "ro" ? "RO" : "EN")
+                </button>
+            </div>
+        }
+        else if (AuthService.IsPartner)
+        {
+            <div class="eco-nav-links">
+                <a href="/my-business">@Loc["nav.myBusiness"]</a>
+                <a href="/my-business/orders">@Loc["nav.receivedOrders"]</a>
+                <a href="/my-business/stats">@Loc["nav.salesStats"]</a>
+            </div>
+            <div class="eco-nav-actions">
+                <span class="role-badge">@(string.IsNullOrEmpty(AuthService.BusinessName) ? "Business" : AuthService.BusinessName)</span>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => showLogoutConfirm = true">@Loc["nav.logout"]</button>
+                <button class="btn btn-outline-primary btn-sm" title="Switch theme" @onclick="ToggleTheme">
+                    <Icon Name="@(_theme == "dark" ? "light_mode" : "dark_mode")" />
+                </button>
+                <button class="btn btn-outline-primary btn-sm" title="Language" @onclick="ToggleLanguage">
+                    @(Loc.Language == "ro" ? "RO" : "EN")
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="eco-nav-links">
+                <a href="/">@Loc["nav.home"]</a>
+                <a href="/order">@Loc["nav.order"]</a>
+                <a href="/ending-soon">@Loc["nav.endingSoon"]</a>
+                @if (AuthService.IsAuthenticated)
+                {
+                    <a href="/favorites">@Loc["nav.favorites"]</a>
+                    <a href="/orders">@Loc["nav.myOrders"]</a>
+                }
+            </div>
+            <div class="eco-nav-actions">
+                <a class="btn btn-outline-primary btn-sm" href="/basket">
+                    <Icon Name="shopping_basket" />@(CartService.Count > 0 ? $" {CartService.Count}" : "")
+                </a>
+                @if (AuthService.IsAuthenticated)
+                {
+                    <span class="eco-city"><Icon Name="location_on" Class="icon-sm" /> @(string.IsNullOrEmpty(AuthService.City) ? Loc["nav.noCity"] : string.IsNullOrEmpty(AuthService.Country) ? AuthService.City : $"{AuthService.City}, {AuthService.Country}")</span>
+                    <a class="btn btn-outline-primary btn-sm" href="/profile">@Loc["nav.profile"]</a>
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => showLogoutConfirm = true">@Loc["nav.logout"]</button>
+                }
+                else
+                {
+                    <a class="btn btn-outline-primary btn-sm" href="/login">@Loc["nav.login"]</a>
+                    <a class="btn btn-primary btn-sm" href="/register">@Loc["nav.signUp"]</a>
+                }
+                <button class="btn btn-outline-primary btn-sm" title="Switch theme" @onclick="ToggleTheme">
+                    <Icon Name="@(_theme == "dark" ? "light_mode" : "dark_mode")" />
+                </button>
+                <button class="btn btn-outline-primary btn-sm" title="Language" @onclick="ToggleLanguage">
+                    @(Loc.Language == "ro" ? "RO" : "EN")
+                </button>
+            </div>
+        }
     </nav>
 
     <main>
@@ -36,46 +95,347 @@
         </article>
     </main>
 
-    <footer class="eco-footer">
-        <div class="inner">
-            <span class="brand">🌿 EcoMeal</span>
-            <span>Own a restaurant? <a href="/partner">Want to become a partner? →</a></span>
-            <span>
-                <a href="/">Home</a>
-                <a href="/order">Order</a>
-                <a href="/partner">Partner</a>
-            </span>
-        </div>
-    </footer>
+    @if (!AuthService.IsAdmin && !AuthService.IsPartner)
+    {
+        <footer class="eco-footer">
+            <div class="inner">
+                <span class="brand"><Icon Name="eco" Filled="true" /> EcoMeal</span>
+                <span>@Loc["footer.ownRestaurant"] <a href="/partner">@Loc["footer.becomePartner"]</a></span>
+                <span>
+                    <a href="/">@Loc["nav.home"]</a>
+                    <a href="/order">@Loc["nav.order"]</a>
+                    <a href="/partner">@Loc["footer.partner"]</a>
+                </span>
+            </div>
+        </footer>
+    }
 </div>
 
 @if (showLogoutConfirm)
 {
     <div class="eco-modal-backdrop" @onclick="() => showLogoutConfirm = false">
         <div class="eco-modal" @onclick:stopPropagation="true">
-            <h3>Log out?</h3>
-            <p>Are you sure you want to log out of your account?</p>
+            <h3>@Loc["logout.title"]</h3>
+            <p>@Loc["logout.text"]</p>
             <div class="actions">
-                <button class="btn btn-outline-secondary" @onclick="() => showLogoutConfirm = false">Cancel</button>
-                <button class="btn btn-danger" @onclick="HandleLogout">Log out</button>
+                <button class="btn btn-outline-secondary" @onclick="() => showLogoutConfirm = false">@Loc["logout.cancel"]</button>
+                <button class="btn btn-danger" @onclick="HandleLogout">@Loc["logout.confirm"]</button>
             </div>
         </div>
     </div>
 }
 
+@if (_pendingReview is not null)
+{
+    <div class="eco-modal-backdrop" @onclick="SkipPendingReview">
+        <div class="eco-modal" @onclick:stopPropagation="true">
+            <h3>@string.Format(Loc["review.howWas"], _pendingReview.BusinessName)</h3>
+            <p>@string.Format(Loc["review.pickedUpText"], _pendingReview.PackageName)</p>
+            <EditForm Model="_reviewForm" OnValidSubmit="SubmitPendingReview">
+                <DataAnnotationsValidator/>
+
+                <InputSelect class="form-control mb-2" @bind-Value="_reviewForm.Stars">
+                    <option value="0" disabled>@Loc["review.pickRating"]</option>
+                    <option value="5">@Loc["review.excellent"]</option>
+                    <option value="4">@Loc["review.good"]</option>
+                    <option value="3">@Loc["review.okay"]</option>
+                    <option value="2">@Loc["review.poor"]</option>
+                    <option value="1">@Loc["review.bad"]</option>
+                </InputSelect>
+                <ValidationMessage For="@(() => _reviewForm.Stars)"/>
+
+                <InputTextArea class="form-control mb-2" rows="3" placeholder="@Loc["review.commentPlaceholder"]" @bind-Value="_reviewForm.Comment"/>
+
+                <div class="actions">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="SkipPendingReview">@Loc["review.maybeLater"]</button>
+                    <button type="submit" class="btn btn-primary">@Loc["review.submitReview"]</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (_pendingCustomerReview is not null)
+{
+    <div class="eco-modal-backdrop" @onclick="SkipPendingCustomerReview">
+        <div class="eco-modal" @onclick:stopPropagation="true">
+            <h3>@string.Format(Loc["review.howWas"], _pendingCustomerReview.CustomerName)</h3>
+            <p>@string.Format(Loc["review.customerText"], _pendingCustomerReview.PackageName)</p>
+            <EditForm Model="_customerReviewForm" OnValidSubmit="SubmitPendingCustomerReview">
+                <DataAnnotationsValidator/>
+
+                <InputSelect class="form-control mb-2" @bind-Value="_customerReviewForm.Stars">
+                    <option value="0" disabled>@Loc["review.pickRating"]</option>
+                    <option value="5">@Loc["review.excellent"]</option>
+                    <option value="4">@Loc["review.good"]</option>
+                    <option value="3">@Loc["review.okay"]</option>
+                    <option value="2">@Loc["review.poor"]</option>
+                    <option value="1">@Loc["review.bad"]</option>
+                </InputSelect>
+                <ValidationMessage For="@(() => _customerReviewForm.Stars)"/>
+
+                <InputTextArea class="form-control mb-2" rows="3" placeholder="@Loc["review.commentPlaceholder"]" @bind-Value="_customerReviewForm.Comment"/>
+
+                <div class="actions">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="SkipPendingCustomerReview">@Loc["review.maybeLater"]</button>
+                    <button type="submit" class="btn btn-primary">@Loc["review.submitRating"]</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (_showLoyaltyClaim && _pendingReview is null)
+{
+    <div class="eco-modal-backdrop" @onclick="SkipLoyaltyClaim">
+        <div class="eco-modal" @onclick:stopPropagation="true">
+            <h3>🎉 @Loc["loyalty.earned"]</h3>
+            <p>@Loc["loyalty.text1"] <strong>@Loc["loyalty.discount20"]</strong> @Loc["loyalty.text2"]</p>
+            <div class="actions">
+                <button class="btn btn-outline-secondary" @onclick="SkipLoyaltyClaim">@Loc["review.maybeLater"]</button>
+                <button class="btn btn-primary" @onclick="ClaimLoyalty">@Loc["loyalty.claim"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (toastMessage is not null)
+{
+    <div class="eco-toast @(toastSuccess ? "success" : "error") @(toastHiding ? "hiding" : "")">@toastMessage</div>
+}
+
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <span class="dismiss"><Icon Name="close" /></span>
 </div>
 
 @code {
+    private string? toastMessage;
+    private bool toastSuccess;
+    private bool toastHiding;
+
+    private System.Threading.Timer? _reviewTimer;
+    private string _theme = "dark";
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+        CartService.OnChanged += HandleCartChanged;
+        ReviewPromptService.OnCheck += HandleReviewCheckRequested;
+        Navigation.LocationChanged += HandleLocationChanged;
+        Loc.OnChanged += HandleLanguageChanged;
+        _reviewTimer = new System.Threading.Timer(_ => HandleReviewCheckRequested(), null,
+            TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private void HandleLanguageChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleTheme()
+    {
+        _theme = _theme == "dark" ? "light" : "dark";
+        await JS.InvokeVoidAsync("ecoSetTheme", _theme);
+    }
+
+    private async Task ToggleLanguage()
+    {
+        await Loc.SetLanguageAsync(Loc.Language == "ro" ? "en" : "ro");
+    }
+
+    private void HandleReviewCheckRequested()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await CheckPendingReviewsAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        HandleReviewCheckRequested();
+    }
+
+    private async Task CheckPendingReviewsAsync()
+    {
+        if (!AuthService.IsAuthenticated || AuthService.IsAdmin)
+            return;
+
+        if (AuthService.IsPartner)
+        {
+            _pendingCustomerReviews = await ReviewService.GetPendingCustomerReviewsAsync();
+            _pendingCustomerReviews.RemoveAll(p => _skippedCustomerOrderIds.Contains(p.OrderId));
+            if (_pendingCustomerReview is null)
+                ShowNextPendingCustomerReview();
+        }
+        else
+        {
+            _pendingReviews = await OrderService.GetPendingReviewsAsync();
+            _pendingReviews.RemoveAll(p => _skippedBusinessIds.Contains(p.BusinessId));
+            if (_pendingReview is null)
+                ShowNextPendingReview();
+
+            if (!_loyaltySkipped && !_showLoyaltyClaim)
+            {
+                var loyalty = await OrderService.GetLoyaltyStatusAsync();
+                _showLoyaltyClaim = loyalty?.CanClaim == true;
+            }
+        }
+    }
+
+    private void HandleCartChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ShowToast(string message, bool success)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            toastMessage = message;
+            toastSuccess = success;
+            toastHiding = false;
+            StateHasChanged();
+
+            await Task.Delay(4200);
+            if (toastMessage != message)
+                return;
+
+            toastHiding = true;
+            StateHasChanged();
+
+            await Task.Delay(300);
+            if (toastMessage == message)
+            {
+                toastMessage = null;
+                toastHiding = false;
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        _reviewTimer?.Dispose();
+        Loc.OnChanged -= HandleLanguageChanged;
+        ToastService.OnShow -= ShowToast;
+        CartService.OnChanged -= HandleCartChanged;
+        ReviewPromptService.OnCheck -= HandleReviewCheckRequested;
+        Navigation.LocationChanged -= HandleLocationChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await AuthService.LoadTokenAsync();
+            await Loc.LoadAsync();
+            _theme = await JS.InvokeAsync<string>("ecoGetTheme");
+
+            await CheckPendingReviewsAsync();
+
             StateHasChanged();
+        }
+    }
+
+    private List<PendingReviewModel> _pendingReviews = new();
+    private PendingReviewModel? _pendingReview;
+    private ReviewAddModel _reviewForm = new();
+
+    private void ShowNextPendingReview()
+    {
+        _pendingReview = _pendingReviews.Count > 0 ? _pendingReviews[0] : null;
+        if (_pendingReview is not null)
+            _reviewForm = new ReviewAddModel { BusinessId = _pendingReview.BusinessId };
+    }
+
+    private readonly HashSet<int> _skippedBusinessIds = new();
+    private readonly HashSet<int> _skippedCustomerOrderIds = new();
+    private bool _showLoyaltyClaim;
+    private bool _loyaltySkipped;
+
+    private void SkipLoyaltyClaim()
+    {
+        _showLoyaltyClaim = false;
+        _loyaltySkipped = true;
+    }
+
+    private async Task ClaimLoyalty()
+    {
+        var (success, error) = await OrderService.ClaimLoyaltyAsync();
+        if (success)
+            ToastService.ShowSuccess(Loc["loyalty.claimed"]);
+        else
+            ToastService.ShowError(error ?? Loc["loyalty.claimFailed"]);
+
+        _showLoyaltyClaim = false;
+        _loyaltySkipped = true;
+    }
+
+    private void SkipPendingReview()
+    {
+        if (_pendingReview is not null)
+        {
+            _skippedBusinessIds.Add(_pendingReview.BusinessId);
+            _pendingReviews.RemoveAll(p => p.BusinessId == _pendingReview.BusinessId);
+        }
+
+        ShowNextPendingReview();
+    }
+
+    private async Task SubmitPendingReview()
+    {
+        var (success, error) = await ReviewService.SubmitAsync(_reviewForm);
+        if (success)
+            ToastService.ShowSuccess("Review Submitted Successfully! Thanks for sharing your feedback.");
+        else
+            ToastService.ShowError(error ?? "We Couldn't Save Your Review. Please try again from the business page.");
+
+        SkipPendingReview();
+    }
+
+    private List<PendingCustomerReviewModel> _pendingCustomerReviews = new();
+    private PendingCustomerReviewModel? _pendingCustomerReview;
+    private CustomerReviewAddModel _customerReviewForm = new();
+
+    private void ShowNextPendingCustomerReview()
+    {
+        _pendingCustomerReview = _pendingCustomerReviews.Count > 0 ? _pendingCustomerReviews[0] : null;
+        if (_pendingCustomerReview is not null)
+            _customerReviewForm = new CustomerReviewAddModel { OrderId = _pendingCustomerReview.OrderId };
+    }
+
+    private void SkipPendingCustomerReview()
+    {
+        if (_pendingCustomerReview is not null)
+        {
+            _skippedCustomerOrderIds.Add(_pendingCustomerReview.OrderId);
+            _pendingCustomerReviews.RemoveAll(p => p.OrderId == _pendingCustomerReview.OrderId);
+        }
+
+        ShowNextPendingCustomerReview();
+    }
+
+    private async Task SubmitPendingCustomerReview()
+    {
+        var (success, error) = await ReviewService.SubmitCustomerAsync(_customerReviewForm);
+        if (success)
+            ToastService.ShowSuccess("Customer Rating Submitted Successfully!");
+        else
+            ToastService.ShowError(error ?? "We Couldn't Save Your Rating. Please try again.");
+
+        SkipPendingCustomerReview();
+    }
+
+    private bool IsAnimatedPage
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).TrimEnd('/').ToLowerInvariant();
+            return path == "" || path == "order" || path.StartsWith("order/");
         }
     }
 

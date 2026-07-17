@@ -1,0 +1,93 @@
+@page "/verify-email"
+@rendermode InteractiveServer
+@using Ecomeal.client.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject ToastService ToastService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["verify.title"]</PageTitle>
+
+<div class="form-card">
+    <h3 class="mb-3">@Loc["verify.heading"]</h3>
+
+    <p class="text-muted">
+        @Loc["verify.sentTo"] <strong>@email</strong>.
+        @Loc["verify.enterBelow"]
+    </p>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(infoMessage))
+    {
+        <div class="alert alert-success">@infoMessage</div>
+    }
+
+    <label class="form-label">@Loc["verify.codeLabel"]</label>
+    <input class="form-control mb-1 text-center fs-4" style="letter-spacing: 8px;"
+           maxlength="6" inputmode="numeric" placeholder="000000"
+           @bind="code" @bind:event="oninput" />
+
+    <button class="btn btn-primary w-100 mt-3" @onclick="HandleVerify" disabled="@(_busy || code.Length != 6)">
+        @(_busy ? Loc["verify.verifying"] : Loc["verify.button"])
+    </button>
+
+    <p class="mt-3 text-center">
+        @Loc["verify.didntGet"]
+        <a href="" @onclick="HandleResend" @onclick:preventDefault>@Loc["verify.resend"]</a>
+    </p>
+</div>
+
+@code {
+    private string email = "";
+    private string code = "";
+    private string? errorMessage;
+    private string? infoMessage;
+    private bool _busy;
+
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    protected override void OnInitialized()
+    {
+        Loc.OnChanged += HandleLanguageChanged;
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        email = query["email"] ?? "";
+    }
+
+    private async Task HandleVerify()
+    {
+        errorMessage = null;
+        infoMessage = null;
+        _busy = true;
+
+        var (success, error) = await AuthService.VerifyEmailAsync(email, code);
+        _busy = false;
+
+        if (success)
+        {
+            ToastService.ShowSuccess("Email Verified Successfully! You can now log in.");
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            errorMessage = error;
+        }
+    }
+
+    private async Task HandleResend()
+    {
+        errorMessage = null;
+        infoMessage = null;
+
+        var (success, error) = await AuthService.ResendVerificationCodeAsync(email);
+        if (success)
+            infoMessage = Loc["verify.newCodeSent"];
+        else
+            errorMessage = error;
+    }
+}

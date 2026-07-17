@@ -1,0 +1,147 @@
+@page "/my-business"
+@rendermode InteractiveServer
+@using Ecomeal.client.Models
+@using Ecomeal.client.Services
+@inject BusinessService BusinessService
+@inject NavigationManager Navigation
+@inject ToastService ToastService
+@inject LocalizationService Loc
+@implements IDisposable
+
+<PageTitle>@Loc["nav.myBusiness"]</PageTitle>
+
+<div class="container my-4">
+    @if (!_loaded)
+    {
+        <div class="loading-state"><div class="spinner-border text-success" role="status"></div></div>
+    }
+    else if (_business is null)
+    {
+        <h1>@Loc["nav.myBusiness"]</h1>
+        <div class="empty-state">
+            <Icon Name="handshake" Class="ico" />
+            <p>@Loc["myBiz.noBusiness"]</p>
+        </div>
+    }
+    else
+    {
+        @if (_businesses.Count > 1)
+        {
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <label class="form-label mb-0 fw-bold">@Loc["details.location"]:</label>
+                <select class="form-select" style="max-width: 320px"
+                        value="@_business.Id"
+                        @onchange="e => SelectBusiness(int.Parse((string)e.Value!))">
+                    @foreach (var b in _businesses)
+                    {
+                        <option value="@b.Id">@b.Name — @b.City</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <div class="business-banner" style="background-image:url('@_business.ImageUrl')">
+            <div class="business-banner-overlay">
+                <h1 class="mb-2">@_business.Name</h1>
+                <p class="mb-1">@_business.Description</p>
+                <p class="mb-0"><strong>@Loc["details.type"]:</strong> @_business.BusinessTypeName &nbsp;·&nbsp; <strong>@Loc["common.city"]:</strong> @_business.City &nbsp;·&nbsp; <Stars Value="@_business.Rating" /></p>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h2 class="mb-0">@Loc["myBiz.myPackages"]</h2>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary" href="/my-business/orders"><Icon Name="receipt_long" Class="icon-sm" /> @Loc["nav.receivedOrders"]</a>
+                <a class="btn btn-primary" href="@($"/business/{_business.Id}/addPackage")">+ @Loc["details.addPackage"]</a>
+            </div>
+        </div>
+
+        @if (_business.Packages.Count == 0)
+        {
+            <div class="empty-state">
+                <Icon Name="inventory_2" Class="ico" />
+                <p class="mb-3">@Loc["myBiz.noPackages"]</p>
+                <a class="btn btn-primary" href="@($"/business/{_business.Id}/addPackage")">+ @Loc["myBiz.addFirst"]</a>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var pkg in _business.Packages)
+                {
+                    <div class="col-12 col-md-6 col-lg-4" @key="pkg.Id">
+                        <div class="card h-100">
+                            <div class="card-img-wrap">
+                                @if (!string.IsNullOrEmpty(pkg.ImageUrl))
+                                {
+                                    <img src="@pkg.ImageUrl" class="card-img-eco" alt="@pkg.Name" />
+                                }
+                                else
+                                {
+                                    <div class="card-img-placeholder"><Icon Name="inventory_2" /></div>
+                                }
+                                @if (pkg.Quantity > 0)
+                                {
+                                    <span class="qty-badge">@pkg.Quantity @Loc["details.left"]</span>
+                                }
+                                else
+                                {
+                                    <span class="qty-badge sold">@Loc["myBiz.soldOut"]</span>
+                                }
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">@pkg.Name</h5>
+                                <h6 class="card-subtitle">@pkg.PackageTypeName</h6>
+                                <p class="mb-2"><span class="pkg-price">@pkg.Price.ToString("0.00") lei</span></p>
+                                <div class="mt-auto d-flex gap-2">
+                                    <a class="btn btn-outline-primary btn-sm flex-fill" href="@($"/business/{_business.Id}/editPackage/{pkg.Id}")">@Loc["common.edit"]</a>
+                                    <button class="btn btn-outline-danger btn-sm flex-fill" @onclick="() => DeletePackage(pkg.Id)">@Loc["common.delete"]</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Loc.OnChanged += HandleLanguageChanged;
+    private void HandleLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Loc.OnChanged -= HandleLanguageChanged;
+
+    private bool _loaded;
+    private List<BusinessDetailsModel> _businesses = new();
+    private BusinessDetailsModel? _business;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _businesses = await BusinessService.GetMyBusinessesAsync();
+            _business = _businesses.FirstOrDefault();
+            _loaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectBusiness(int id)
+    {
+        _business = _businesses.FirstOrDefault(b => b.Id == id) ?? _business;
+    }
+
+    private async Task DeletePackage(int packageId)
+    {
+        var (success, error) = await BusinessService.DeletePackageAsync(packageId);
+        if (success)
+        {
+            _business?.Packages.RemoveAll(p => p.Id == packageId);
+            ToastService.ShowSuccess(Loc["myBiz.pkgDeleted"]);
+        }
+        else
+        {
+            ToastService.ShowError(error ?? Loc["myBiz.pkgDeleteFailed"]);
+        }
+    }
+}

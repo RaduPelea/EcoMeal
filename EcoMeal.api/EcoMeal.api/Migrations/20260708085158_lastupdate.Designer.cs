@@ -13,7 +13,7 @@ namespace EcoMeal.api.Migrations
 {
     [DbContext(typeof(EcomealDbContext))]
     [Migration("20260708085158_lastupdate")]
-    partial class lastupdate
+    partial class LastUpdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

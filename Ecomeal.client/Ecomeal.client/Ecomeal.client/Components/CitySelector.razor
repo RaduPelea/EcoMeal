@@ -1,7 +1,8 @@
+@inject Ecomeal.client.Services.LocalizationService Loc
 @namespace Ecomeal.client.Components
 
 <div class="city-selector">
-    <input class="form-control" placeholder="Search your city..." value="@_search" @oninput="OnInput" />
+    <input class="form-control" placeholder="@Loc["city.searchPlaceholder"]" value="@_search" @oninput="OnInput" />
 
     @if (!string.IsNullOrWhiteSpace(_search) && _search != Value)
     {
@@ -17,13 +18,13 @@
         }
         else
         {
-            <div class="city-empty">🚧 We're not open here yet.</div>
+            <div class="city-empty"><Icon Name="construction" Class="icon-sm" /> We're not open here yet.</div>
         }
     }
 
     @if (!string.IsNullOrEmpty(Value))
     {
-        <div class="city-chosen">Selected city: <strong>@Value</strong></div>
+        <div class="city-chosen">@Loc["city.selected"]: <strong>@Value</strong></div>
     }
 </div>
 
